@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -14,8 +15,15 @@ import (
 // Register handles creating an account for a user
 func (app App) Register(w http.ResponseWriter, r *http.Request) {
 	user := types.User{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&user)
+
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to read request body")}, nil)
+		return
+	}
+	r.Body.Close()
+
+	err = json.Unmarshal(raw, &user)
 	if err != nil {
 		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to decode request body")}, nil)
 		return

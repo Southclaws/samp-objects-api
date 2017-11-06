@@ -27,7 +27,7 @@ func (app App) routes() (routes []Route) {
 	routes = []Route{
 		{
 			Name:          "index",
-			Methods:       []string{"GET"},
+			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/index",
 			Authenticated: false,
 			handler:       index,

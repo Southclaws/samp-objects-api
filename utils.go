@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +28,7 @@ func WriteResponse(w http.ResponseWriter, status int, errs []error, extra map[st
 	for i, err := range errs {
 		logger.Error("error while processing request",
 			zap.String("status", http.StatusText(status)),
-			zap.Error(err),
+			zap.Error(errors.Cause(err)),
 			zap.Any("extra", extra))
 		resp.Errors[i] = err.Error()
 	}

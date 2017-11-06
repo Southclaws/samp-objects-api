@@ -7,20 +7,22 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"gopkg.in/mgo.v2"
+
+	"bitbucket.org/Southclaws/samp-objects-api/storage"
 )
 
 // App stores global state for routing and coordination
 type App struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	config     Config
-	collection *mgo.Collection
-	router     *mux.Router
+	ctx     context.Context
+	cancel  context.CancelFunc
+	config  Config
+	router  *mux.Router
+	Storage *storage.Database
 }
 
 // Initialise sets up a database connection, binds all the routes and prepares for Start
 func Initialise(config Config) *App {
+	var err error
 	logger.Debug("initialising samp-servers-api with debug logging", zap.Any("config", config))
 
 	app := App{
@@ -28,10 +30,19 @@ func Initialise(config Config) *App {
 	}
 	app.ctx, app.cancel = context.WithCancel(context.Background())
 
-	// Connect to the database, receive a collection pointer
-	app.collection = ConnectDB(config)
+	app.Storage, err = storage.New(storage.Config{
+		MongoHost:       config.MongoHost,
+		MongoPort:       config.MongoPort,
+		MongoUser:       config.MongoUser,
+		MongoPass:       config.MongoPass,
+		MongoName:       config.MongoName,
+		MongoCollection: config.MongoCollection,
+	})
+	if err != nil {
+		logger.Fatal("failed to interact with database",
+			zap.Error(err))
+	}
 	app.SetupAuth()
-	logger.Info("connected to mongodb server")
 
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)

@@ -9,21 +9,34 @@ import (
 	"net/http"
 	"strings"
 
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/mgo.v2/bson"
 )
+
+// AuthRequest represents the object POSTed to the /login endpoint in order to get a token
+type AuthRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// AuthResponse represents the object returned on successful login
+type AuthResponse struct {
+	Message string `json:"message,omitempty"`
+	Token   string `json:"token,omitempty"`
+}
 
 // SetupAuth creates a default root user if it does not already exist
 func (app App) SetupAuth() {
-	count, err := app.collection.Find(bson.M{"username": "root"}).Count()
+	exists, err := app.Storage.UserExistsByName("root")
 	if err != nil {
-		logger.Fatal("failed to execute find on root user")
+		logger.Fatal("failed to check for root user account existence")
 	}
 
-	if count == 0 {
+	if !exists {
 		// Plaintext passwords are SHA'd on the client, bcrypt'd on the server
 		// since this is the auto-generated root account, we're doing both here.
 		password, err := GenerateRandomString(40)
@@ -38,55 +51,29 @@ func (app App) SetupAuth() {
 			logger.Fatal("failed to generate bcrypt from sha256")
 		}
 
-		if err = app.collection.Insert(AuthUser{Username: "root", Password: string(serverHash)}); err != nil {
+		if err = app.Storage.CreateUser(types.User{Username: "root", Email: "admin@samp-objects.com", Password: string(serverHash)}); err != nil {
 			logger.Fatal("failed to create root user")
 		}
 		logger.Info("created new root account", zap.String("password", password))
 	}
 }
 
-// AuthRequest represents the object POSTed to the /login endpoint in order to get a token
-type AuthRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-// AuthResponse represents the object returned on successful login
-type AuthResponse struct {
-	Message string `json:"message,omitempty"`
-	Token   string `json:"token,omitempty"`
-}
-
-// AuthUser represents an API user with permission to access authenticated API endpoints
-type AuthUser struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 // AuthenticateLoginRequest is called for /login requests and authenticates the request body against
 // the database
 func (app *App) AuthenticateLoginRequest(r *http.Request) (success bool, err error) {
-	var (
-		ar AuthRequest
-		au AuthUser
-	)
-
+	var authRequest AuthRequest
 	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&ar)
+	err = decoder.Decode(&authRequest)
 	if err != nil {
 		return
 	}
 
-	logger.Debug("received authenticate login request",
-		zap.String("username", ar.Username),
-		zap.String("password", ar.Password))
-
-	err = app.collection.Find(bson.M{"username": ar.Username}).One(&au)
+	user, err := app.Storage.GetUserByName(authRequest.Username)
 	if err != nil {
 		return false, fmt.Errorf("database lookup failed: %v", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(au.Password), []byte(ar.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password)); err != nil {
 		return false, err
 	}
 
@@ -97,7 +84,6 @@ func (app *App) AuthenticateLoginRequest(r *http.Request) (success bool, err err
 func (app *App) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug("received authenticated request")
-
 		token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
@@ -106,29 +92,23 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 			return []byte(app.config.AuthSecret), nil
 		})
 		if err != nil {
-			logger.Error("failed to parse Authorization header",
-				zap.Error(err),
-				zap.Any("headers", r.Header))
-			w.WriteHeader(http.StatusInternalServerError)
+			WriteResponse(w, http.StatusInternalServerError,
+				[]error{errors.Wrap(err, "failed to parse Authorization header")},
+				map[string]interface{}{"headers": r.Header})
 			return
 		}
 
 		if !token.Valid {
-			logger.Warn("request failed authentication",
-				zap.Any("request", r))
-			w.WriteHeader(http.StatusUnauthorized)
+			WriteResponse(w, http.StatusUnauthorized, []error{errors.Wrap(err, "request failed authentication")}, nil)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
+		_, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			logger.Warn("request failed to get token claim",
-				zap.Any("request", r))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			WriteResponse(w, http.StatusInternalServerError, []error{errors.New("failed to get token claim")}, nil)
 		}
-		logger.Debug("obtained token claims",
-			zap.Any("claims", claims))
+
+		logger.Debug("successfully handled authenticated request")
 
 		next.ServeHTTP(w, r)
 	})
@@ -155,5 +135,9 @@ func GenerateRandomString(s int) (string, error) {
 
 // LoggedIn is a dummy endpoint to check logged-in status
 func LoggedIn(w http.ResponseWriter, r *http.Request) {
-	//
+	w.Header().Set("Content-Type", "application/json")
+	_, err := w.Write([]byte(`{"loggedIn": "yes!"}`))
+	if err != nil {
+		logger.Fatal("failed to write to response writer", zap.Error(err))
+	}
 }

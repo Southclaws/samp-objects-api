@@ -5,67 +5,92 @@ import (
 	"net/http"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
-	"go.uber.org/zap"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
+
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
-// Login handles authentication, returns a JWT token on success
-func (app App) Login(w http.ResponseWriter, r *http.Request) {
-	var (
-		err         error
-		success     bool
-		tokenObj    *jwt.Token
-		tokenString string
-		claims      jwt.MapClaims
-		auth        AuthResponse
-		payload     []byte
-	)
-
-	success, err = app.AuthenticateLoginRequest(r)
+// Register handles creating an account for a user
+func (app App) Register(w http.ResponseWriter, r *http.Request) {
+	user := types.User{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&user)
 	if err != nil {
-		logger.Error("failed to authenticate login request",
-			zap.Error(err))
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to decode request body")}, nil)
 		return
 	}
 
-	if success {
-		tokenObj = jwt.New(jwt.SigningMethodHS256)
-		claims = tokenObj.Claims.(jwt.MapClaims)
-
-		claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
-
-		tokenString, err = tokenObj.SignedString([]byte(app.config.AuthSecret))
-		if err != nil {
-			logger.Error("failed to sign login tokenObj",
-				zap.Error(err))
-			return
-		}
-
-		logger.Debug("accepted authentication")
-
-		auth = AuthResponse{
-			Message: "success",
-			Token:   tokenString,
-		}
-	} else {
-		logger.Debug("denying authentication")
-		auth = AuthResponse{
-			Message: "failure",
-		}
-		w.WriteHeader(http.StatusUnauthorized)
+	err = app.Storage.CreateUser(user)
+	if err != nil {
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to create new user")}, nil)
+		return
 	}
 
-	payload, err = json.Marshal(auth)
+	var auth AuthResponse
+
+	tokenObj := jwt.New(jwt.SigningMethodHS256)
+	claims := tokenObj.Claims.(jwt.MapClaims)
+
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+	tokenString, err := tokenObj.SignedString([]byte(app.config.AuthSecret))
 	if err != nil {
-		logger.Error("failed to marshall token payload",
-			zap.Error(err))
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to sign authentication token")}, nil)
+		return
+	}
+
+	auth = AuthResponse{
+		Message: "success",
+		Token:   tokenString,
+	}
+
+	payload, err := json.Marshal(auth)
+	if err != nil {
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to encode authentication response")}, nil)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(payload)
 }
 
-// Register handles creating an account for a user
-func (app App) Register(w http.ResponseWriter, r *http.Request) {
+// Login handles authentication, returns a JWT token on success
+func (app App) Login(w http.ResponseWriter, r *http.Request) {
+	success, err := app.AuthenticateLoginRequest(r)
+	if err != nil {
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to authenticate login request")}, nil)
+		return
+	}
 
+	var auth AuthResponse
+	if success {
+		tokenObj := jwt.New(jwt.SigningMethodHS256)
+		claims := tokenObj.Claims.(jwt.MapClaims)
+
+		claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+		tokenString, err := tokenObj.SignedString([]byte(app.config.AuthSecret))
+		if err != nil {
+			WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to sign authentication token")}, nil)
+			return
+		}
+
+		auth = AuthResponse{
+			Message: "success",
+			Token:   tokenString,
+		}
+	} else {
+		auth = AuthResponse{
+			Message: "failure",
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+
+	payload, err := json.Marshal(auth)
+	if err != nil {
+		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to encode authentication response")}, nil)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(payload)
 }

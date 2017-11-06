@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // Route defines an API call route and links it with a function call
@@ -13,8 +16,22 @@ type Route struct {
 	handler       http.HandlerFunc
 }
 
-func (app App) routes() []Route {
-	return []Route{
+func (app App) routes() (routes []Route) {
+	index := func(w http.ResponseWriter, r *http.Request) {
+		enc := json.NewEncoder(w)
+		err := enc.Encode(routes)
+		if err != nil {
+			logger.Fatal("failed to write index response", zap.Error(err))
+		}
+	}
+	routes = []Route{
+		{
+			Name:          "index",
+			Methods:       []string{"GET"},
+			Path:          "/v0/index",
+			Authenticated: false,
+			handler:       index,
+		},
 		{
 			Name:          "login",
 			Methods:       []string{"OPTIONS", "POST"},
@@ -37,4 +54,5 @@ func (app App) routes() []Route {
 			handler:       LoggedIn,
 		},
 	}
+	return
 }

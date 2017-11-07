@@ -17,7 +17,6 @@ local: fast
 	MONGO_HOST=localhost \
 	MONGO_PORT=27017 \
 	MONGO_NAME=sampobjects \
-	MONGO_COLLECTION=sampobjects \
 	AUTH_SECRET=$(AUTH_SECRET) \
 	DEBUG=1 \
 	./samp-objects-api
@@ -54,7 +53,6 @@ run:
 		-e MONGO_HOST=localhost \
 		-e MONGO_PORT=27017 \
 		-e MONGO_NAME=sampobjects \
-		-e MONGO_COLLECTION=sampobjects \
 		-e AUTH_SECRET=$(AUTH_SECRET) \
 		-
 		southclaws/samp-objects:$(VERSION)

@@ -29,7 +29,7 @@ func (db Database) CreateUser(user types.User) (err error) {
 		return
 	}
 
-	err = db.collection.Insert(user)
+	err = db.users.Insert(user)
 
 	return
 }
@@ -40,7 +40,7 @@ func (db Database) UpdateUser(user types.User) (err error) {
 		return
 	}
 
-	err = db.collection.Update(bson.M{"id": user.ID}, user)
+	err = db.users.Update(bson.M{"id": user.ID}, user)
 
 	return
 }
@@ -51,14 +51,14 @@ func (db Database) DeleteUser(user types.User) (err error) {
 		return
 	}
 
-	err = db.collection.Remove(bson.M{"id": user.ID})
+	err = db.users.Remove(bson.M{"id": user.ID})
 
 	return
 }
 
 // GetUser returns a types.User by their unique ID
 func (db Database) GetUser(id string) (user types.User, err error) {
-	err = db.collection.Find(bson.M{"id": id}).One(user)
+	err = db.users.Find(bson.M{"id": id}).One(user)
 	if err != nil {
 		return
 	}
@@ -68,13 +68,13 @@ func (db Database) GetUser(id string) (user types.User, err error) {
 
 // GetUserByName returns a types.User by their username
 func (db Database) GetUserByName(username string) (user types.User, err error) {
-	err = db.collection.Find(bson.M{"username": username}).One(user)
+	err = db.users.Find(bson.M{"username": username}).One(user)
 	return
 }
 
 // UserExists checks if a user exists by their unique ID
 func (db Database) UserExists(id string) (exists bool, err error) {
-	count, err := db.collection.Find(bson.M{"id": id}).Count()
+	count, err := db.users.Find(bson.M{"id": id}).Count()
 	if err != nil {
 		return
 	}
@@ -83,7 +83,7 @@ func (db Database) UserExists(id string) (exists bool, err error) {
 
 // UserExistsByName checks if a user exists by their username
 func (db Database) UserExistsByName(username string) (exists bool, err error) {
-	count, err := db.collection.Find(bson.M{"username": username}).Count()
+	count, err := db.users.Find(bson.M{"username": username}).Count()
 	if err != nil {
 		return
 	}

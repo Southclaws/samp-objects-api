@@ -31,12 +31,11 @@ func Initialise(config Config) *App {
 	app.ctx, app.cancel = context.WithCancel(context.Background())
 
 	app.Storage, err = storage.New(storage.Config{
-		MongoHost:       config.MongoHost,
-		MongoPort:       config.MongoPort,
-		MongoUser:       config.MongoUser,
-		MongoPass:       config.MongoPass,
-		MongoName:       config.MongoName,
-		MongoCollection: config.MongoCollection,
+		MongoHost: config.MongoHost,
+		MongoPort: config.MongoPort,
+		MongoUser: config.MongoUser,
+		MongoPass: config.MongoPass,
+		MongoName: config.MongoName,
 	})
 	if err != nil {
 		logger.Fatal("failed to interact with database",

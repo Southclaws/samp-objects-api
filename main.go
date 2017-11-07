@@ -12,15 +12,14 @@ var version = "master"
 
 // Config stores app global configuration
 type Config struct {
-	Version         string
-	Bind            string
-	MongoHost       string
-	MongoPort       string
-	MongoName       string
-	MongoUser       string
-	MongoPass       string
-	MongoCollection string
-	AuthSecret      string
+	Version    string
+	Bind       string
+	MongoHost  string
+	MongoPort  string
+	MongoName  string
+	MongoUser  string
+	MongoPass  string
+	AuthSecret string
 }
 
 var logger *zap.Logger
@@ -56,15 +55,14 @@ func init() {
 
 func main() {
 	config := Config{
-		Version:         version,
-		Bind:            configStrFromEnv("BIND"),
-		MongoHost:       configStrFromEnv("MONGO_HOST"),
-		MongoPort:       configStrFromEnv("MONGO_PORT"),
-		MongoName:       configStrFromEnv("MONGO_NAME"),
-		MongoUser:       configStrFromEnv("MONGO_USER"),
-		MongoPass:       os.Getenv("MONGO_PASS"),
-		MongoCollection: configStrFromEnv("MONGO_COLLECTION"),
-		AuthSecret:      configStrFromEnv("AUTH_SECRET"),
+		Version:    version,
+		Bind:       configStrFromEnv("BIND"),
+		MongoHost:  configStrFromEnv("MONGO_HOST"),
+		MongoPort:  configStrFromEnv("MONGO_PORT"),
+		MongoName:  configStrFromEnv("MONGO_NAME"),
+		MongoUser:  configStrFromEnv("MONGO_USER"),
+		MongoPass:  os.Getenv("MONGO_PASS"),
+		AuthSecret: configStrFromEnv("AUTH_SECRET"),
 	}
 	app := Initialise(config)
 	app.Start()

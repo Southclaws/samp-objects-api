@@ -154,6 +154,8 @@ func (app App) WriteToken(w http.ResponseWriter, r *http.Request, session *sessi
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
 		return
 	}
+
+	return
 }
 
 // newToken generates a JWT token and returns it as a string

@@ -14,6 +14,7 @@ var version = "master"
 type Config struct {
 	Version    string
 	Bind       string
+	Domain     string
 	MongoHost  string
 	MongoPort  string
 	MongoName  string
@@ -57,6 +58,7 @@ func main() {
 	config := Config{
 		Version:    version,
 		Bind:       configStrFromEnv("BIND"),
+		Domain:     configStrFromEnv("DOMAIN"),
 		MongoHost:  configStrFromEnv("MONGO_HOST"),
 		MongoPort:  configStrFromEnv("MONGO_PORT"),
 		MongoName:  configStrFromEnv("MONGO_NAME"),

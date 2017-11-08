@@ -64,11 +64,7 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 
 	session.Values["UserID"] = user.ID
 
-	err = app.WriteToken(w, r, session)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
-		return
-	}
+	app.WriteToken(w, r, session, user.ID)
 }
 
 // Login handles authentication, returns a JWT token on success
@@ -106,11 +102,7 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 
 	session.Values["UserID"] = user.ID
 
-	err = app.WriteToken(w, r, session)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
-		return
-	}
+	app.WriteToken(w, r, session, user.ID)
 }
 
 // Refresh refreshes a JWT token
@@ -121,11 +113,19 @@ func (app App) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.WriteToken(w, r, session)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
+	userIDraw, ok := session.Values["UserID"]
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read or create cookie session"))
 		return
 	}
+
+	userID, ok := userIDraw.(types.UserID)
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to interpret user ID as string"))
+		return
+	}
+
+	app.WriteToken(w, r, session, userID)
 }
 
 // Info returns a types.User object for the user making the request

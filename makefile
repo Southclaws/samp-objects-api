@@ -13,6 +13,7 @@ static:
 
 local: fast
 	BIND=localhost:8080 \
+	DOMAIN=localhost \
 	MONGO_USER=sampobjects \
 	MONGO_HOST=localhost \
 	MONGO_PORT=27017 \

@@ -33,8 +33,15 @@ func WriteResponseError(w http.ResponseWriter, status int, err error) {
 	w.WriteHeader(status)
 
 	if !bodyAllowedForStatus(status) {
+		logger.Error("request error (not sent to client)",
+			zap.String("status", http.StatusText(status)),
+			zap.Error(err))
 		return
 	}
+
+	logger.Error("request error (sent to client)",
+		zap.String("status", http.StatusText(status)),
+		zap.Error(err))
 
 	marshalResponse(w, Response{Error: err.Error()})
 }

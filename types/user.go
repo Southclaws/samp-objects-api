@@ -1,6 +1,7 @@
 package types
 
 import "errors"
+import "encoding/gob"
 
 // UserID represents a user's unique ID
 type UserID string
@@ -20,6 +21,10 @@ type User struct {
 	Username UserName  `json:"username"`
 	Email    UserEmail `json:"email"`
 	Password UserPass  `json:"password"`
+}
+
+func init() {
+	gob.Register(UserID(""))
 }
 
 // Validate ensures all necessary fields are correct

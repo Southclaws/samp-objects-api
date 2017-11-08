@@ -28,7 +28,8 @@ type AuthRequest struct {
 
 // AuthResponse represents the object returned on successful login
 type AuthResponse struct {
-	Token string `json:"token,omitempty"`
+	Token  string       `json:"token"`
+	UserID types.UserID `json:"userID"`
 }
 
 // SetupAuth creates a default root user if it does not already exist
@@ -132,12 +133,28 @@ func GenerateRandomString(s int) (string, error) {
 
 // WriteToken writes a token response for a request, it also ensures the token is cached and stored
 // as related to the user who made the request.
-func (app App) WriteToken(w http.ResponseWriter, r *http.Request, session *sessions.Session) (err error) {
+func (app App) WriteToken(w http.ResponseWriter, r *http.Request, session *sessions.Session, userID types.UserID) {
 	token, err := app.newToken(time.Hour * 24)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
 		return
 	}
+
+	session.Options = &sessions.Options{
+		Path:     "/",
+		Domain:   app.config.Domain,
+		MaxAge:   86400 * 30,
+		Secure:   false,
+		HttpOnly: false,
+	}
+
+	payload, err := json.Marshal(&AuthResponse{token, userID})
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 	session.Values["token"] = token
 	err = session.Save(r, w)
@@ -145,21 +162,11 @@ func (app App) WriteToken(w http.ResponseWriter, r *http.Request, session *sessi
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
 		return
 	}
-
-	payload, err := json.Marshal(&AuthResponse{Token: token})
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(payload)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
 		return
 	}
-
-	return
 }
 
 // newToken generates a JWT token and returns it as a string

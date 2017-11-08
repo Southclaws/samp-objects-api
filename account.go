@@ -59,6 +59,19 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
 		return
 	}
+
+	payload, err := json.Marshal(&AuthResponse{Token: token})
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(payload)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
+		return
+	}
 }
 
 // Login handles authentication, returns a JWT token on success
@@ -101,7 +114,24 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.Values["token"] = token
-	session.Save(r, w)
+	err = session.Save(r, w)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
+		return
+	}
+
+	payload, err := json.Marshal(&AuthResponse{Token: token})
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(payload)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
+		return
+	}
 }
 
 // Info returns a types.User object for the user making the request

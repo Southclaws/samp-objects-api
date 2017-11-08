@@ -25,8 +25,7 @@ type AuthRequest struct {
 
 // AuthResponse represents the object returned on successful login
 type AuthResponse struct {
-	Message string `json:"message,omitempty"`
-	Token   string `json:"token,omitempty"`
+	Token string `json:"token,omitempty"`
 }
 
 // SetupAuth creates a default root user if it does not already exist
@@ -104,8 +103,8 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 			return
 		}
 
-		authenticated, ok := session.Values["authenticated"].(bool)
-		if !ok || !authenticated {
+		authenticated, ok := session.Values["token"].(string)
+		if !ok || authenticated == "" {
 			WriteResponseError(w, http.StatusUnauthorized, errors.New("not authorized"))
 			return
 		}

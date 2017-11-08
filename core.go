@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
 // App stores global state for routing and coordination
@@ -18,6 +19,7 @@ type App struct {
 	config  Config
 	router  *mux.Router
 	Storage *storage.Database
+	Tokens  map[string]types.UserID
 }
 
 // Initialise sets up a database connection, binds all the routes and prepares for Start

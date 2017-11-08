@@ -51,7 +51,7 @@ func (app App) routes() (routes []Route) {
 			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/accounts/info",
 			Authenticated: true,
-			handler:       LoggedIn,
+			handler:       app.Info,
 		},
 	}
 	return

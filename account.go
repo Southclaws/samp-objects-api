@@ -8,6 +8,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
 	"bitbucket.org/Southclaws/samp-objects-api/types"
@@ -101,5 +102,18 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(payload)
+	_, err = w.Write(payload)
+	if err != nil {
+		logger.Error("failed to write login response",
+			zap.Error(err))
+	}
+}
+
+// Info returns a types.User object for the user making the request
+func (app App) Info(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_, err := w.Write([]byte(`{"loggedIn": "yes!"}`))
+	if err != nil {
+		logger.Fatal("failed to write to response writer", zap.Error(err))
+	}
 }

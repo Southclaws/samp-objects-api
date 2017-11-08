@@ -24,7 +24,7 @@ func (db Database) CreateUser(user types.User) (err error) {
 		return
 	}
 
-	user.ID = uuid.New().String()
+	user.ID = types.UserID(uuid.New().String())
 	if err = user.Validate(); err != nil {
 		return
 	}
@@ -57,7 +57,7 @@ func (db Database) DeleteUser(user types.User) (err error) {
 }
 
 // GetUser returns a types.User by their unique ID
-func (db Database) GetUser(id string) (user types.User, err error) {
+func (db Database) GetUser(id types.UserID) (user types.User, err error) {
 	err = db.users.Find(bson.M{"id": id}).One(user)
 	if err != nil {
 		return
@@ -67,13 +67,13 @@ func (db Database) GetUser(id string) (user types.User, err error) {
 }
 
 // GetUserByName returns a types.User by their username
-func (db Database) GetUserByName(username string) (user types.User, err error) {
+func (db Database) GetUserByName(username types.UserName) (user types.User, err error) {
 	err = db.users.Find(bson.M{"username": username}).One(user)
 	return
 }
 
 // UserExists checks if a user exists by their unique ID
-func (db Database) UserExists(id string) (exists bool, err error) {
+func (db Database) UserExists(id types.UserID) (exists bool, err error) {
 	count, err := db.users.Find(bson.M{"id": id}).Count()
 	if err != nil {
 		return
@@ -82,7 +82,7 @@ func (db Database) UserExists(id string) (exists bool, err error) {
 }
 
 // UserExistsByName checks if a user exists by their username
-func (db Database) UserExistsByName(username string) (exists bool, err error) {
+func (db Database) UserExistsByName(username types.UserName) (exists bool, err error) {
 	count, err := db.users.Find(bson.M{"username": username}).Count()
 	if err != nil {
 		return

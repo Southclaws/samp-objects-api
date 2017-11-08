@@ -19,8 +19,8 @@ import (
 
 // AuthRequest represents the object POSTed to the /login endpoint in order to get a token
 type AuthRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username types.UserName `json:"username"`
+	Password types.UserPass `json:"password"`
 }
 
 // AuthResponse represents the object returned on successful login
@@ -51,7 +51,12 @@ func (app App) SetupAuth() {
 			logger.Fatal("failed to generate bcrypt from sha256")
 		}
 
-		if err = app.Storage.CreateUser(types.User{Username: "root", Email: "admin@samp-objects.com", Password: string(serverHash)}); err != nil {
+		if err = app.Storage.CreateUser(
+			types.User{
+				Username: types.UserName("root"),
+				Email:    types.UserEmail("admin@samp-objects.com"),
+				Password: types.UserPass(serverHash),
+			}); err != nil {
 			logger.Fatal("failed to create root user")
 		}
 		logger.Info("created new root account", zap.String("password", password))
@@ -129,13 +134,4 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 func GenerateRandomString(s int) (string, error) {
 	b, err := GenerateRandomBytes(s)
 	return strings.Trim(base64.URLEncoding.EncodeToString(b), "=/_-"), err
-}
-
-// LoggedIn is a dummy endpoint to check logged-in status
-func LoggedIn(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_, err := w.Write([]byte(`{"loggedIn": "yes!"}`))
-	if err != nil {
-		logger.Fatal("failed to write to response writer", zap.Error(err))
-	}
 }

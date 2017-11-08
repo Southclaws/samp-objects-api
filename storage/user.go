@@ -3,9 +3,10 @@ package storage
 import (
 	"errors"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/google/uuid"
 	"gopkg.in/mgo.v2/bson"
+
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
 var (

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -59,29 +58,9 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := app.NewToken(time.Hour * 24)
+	err = app.WriteToken(w, r, session)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
-		return
-	}
-
-	session.Values["token"] = token
-	err = session.Save(r, w)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
-		return
-	}
-
-	payload, err := json.Marshal(&AuthResponse{Token: token})
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(payload)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
 		return
 	}
 }
@@ -123,38 +102,29 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := app.NewToken(time.Hour * 24)
+	err = app.WriteToken(w, r, session)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
+		return
+	}
+}
+
+// Refresh refreshes a JWT token
+func (app App) Refresh(w http.ResponseWriter, r *http.Request) {
+	session, err := app.Sessions.Get(r, UserSessionCookie)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session"))
 		return
 	}
 
-	session.Values["token"] = token
-	err = session.Save(r, w)
+	err = app.WriteToken(w, r, session)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
-		return
-	}
-
-	payload, err := json.Marshal(&AuthResponse{Token: token})
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(payload)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token response"))
 		return
 	}
 }
 
 // Info returns a types.User object for the user making the request
 func (app App) Info(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_, err := w.Write([]byte(`{"loggedIn": "yes!"}`))
-	if err != nil {
-		logger.Fatal("failed to write to response writer", zap.Error(err))
-	}
+
 }

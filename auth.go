@@ -4,17 +4,20 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
+	"github.com/gorilla/sessions"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
 // AuthRequest represents the object POSTed to the /login endpoint in order to get a token
@@ -60,15 +63,6 @@ func (app App) SetupAuth() {
 		}
 		logger.Info("created new root account", zap.String("password", password))
 	}
-}
-
-// NewToken generates a JWT token and returns it as a string
-func (app App) NewToken(exp time.Duration) (token string, err error) {
-	tokenObj := jwt.New(jwt.SigningMethodHS256)
-	claims := tokenObj.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
-	token, err = tokenObj.SignedString([]byte(app.config.AuthSecret))
-	return
 }
 
 // Authenticated is a middleware layer for requests that require authentication
@@ -140,4 +134,43 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 func GenerateRandomString(s int) (string, error) {
 	b, err := GenerateRandomBytes(s)
 	return strings.Trim(base64.URLEncoding.EncodeToString(b), "=/_-"), err
+}
+
+// WriteToken writes a token response for a request, it also ensures the token is cached and stored
+// as related to the user who made the request.
+func (app App) WriteToken(w http.ResponseWriter, r *http.Request, session *sessions.Session) (err error) {
+	token, err := app.newToken(time.Hour * 24)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
+		return
+	}
+
+	session.Values["token"] = token
+	err = session.Save(r, w)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to store token to cookie"))
+		return
+	}
+
+	payload, err := json.Marshal(&AuthResponse{Token: token})
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode token payload"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(payload)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write token payload"))
+		return
+	}
+}
+
+// newToken generates a JWT token and returns it as a string
+func (app App) newToken(exp time.Duration) (token string, err error) {
+	tokenObj := jwt.New(jwt.SigningMethodHS256)
+	claims := tokenObj.Claims.(jwt.MapClaims)
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	token, err = tokenObj.SignedString([]byte(app.config.AuthSecret))
+	return
 }

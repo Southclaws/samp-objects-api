@@ -3,7 +3,6 @@ package storage
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"gopkg.in/mgo.v2/bson"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
@@ -25,7 +24,6 @@ func (db Database) CreateUser(user types.User) (err error) {
 		return
 	}
 
-	user.ID = types.UserID(uuid.New().String())
 	if err = user.Validate(); err != nil {
 		return
 	}

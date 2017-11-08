@@ -70,7 +70,7 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, errors.Errorf("Unexpected signing method: %v", token.Header["alg"])
 			}
 
 			return []byte(app.config.AuthSecret), nil
@@ -98,7 +98,11 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 		}
 
 		authenticated, ok := session.Values["token"].(string)
-		if !ok || authenticated == "" {
+		if !ok {
+			WriteResponseError(w, http.StatusBadRequest, errors.New("no token field in request"))
+			return
+		}
+		if authenticated == "" {
 			WriteResponseError(w, http.StatusUnauthorized, errors.New("not authorized"))
 			return
 		}

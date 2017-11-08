@@ -2,12 +2,24 @@ package types
 
 import "errors"
 
+// UserID represents a user's unique ID
+type UserID string
+
+// UserName represents a user's name
+type UserName string
+
+// UserEmail represents a user's email address
+type UserEmail string
+
+// UserPass represents a user's password hash
+type UserPass string
+
 // User represents a user in the system, it contains their profile details and password hash
 type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID       UserID    `json:"id"`
+	Username UserName  `json:"username"`
+	Email    UserEmail `json:"email"`
+	Password UserPass  `json:"password"`
 }
 
 // Validate ensures all necessary fields are correct

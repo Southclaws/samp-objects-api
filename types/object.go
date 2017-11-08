@@ -2,14 +2,26 @@ package types
 
 import "errors"
 
+// ObjectID represents an object's unique ID
+type ObjectID string
+
+// ObjectName represents an object's name
+type ObjectName string
+
+// ObjectDescription represents an object's description
+type ObjectDescription string
+
+// ObjectHash represents an object's content hash
+type ObjectHash string
+
 // Object represents an object that a user has uploaded, it includes a hash of the file contents
 // and details such as name and owner.
 type Object struct {
-	ID          string `json:"id"`
-	Owner       string `json:"owner"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Hash        string `json:"hash"`
+	ID          ObjectID          `json:"id"`
+	Owner       UserID            `json:"owner"`
+	Name        ObjectName        `json:"name"`
+	Description ObjectDescription `json:"description"`
+	Hash        ObjectHash        `json:"hash"`
 }
 
 // Validate ensures all necessary fields are correct

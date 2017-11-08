@@ -6,21 +6,27 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
 // App stores global state for routing and coordination
 type App struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	config  Config
-	router  *mux.Router
-	Storage *storage.Database
-	Tokens  map[string]types.UserID
+	ctx      context.Context
+	cancel   context.CancelFunc
+	config   Config
+	router   *mux.Router
+	Storage  *storage.Database
+	Sessions *sessions.CookieStore
 }
+
+const (
+	// UserSessionCookie is the name used for the Gorilla cookie storage manager
+	UserSessionCookie = "userAuthData"
+)
 
 // Initialise sets up a database connection, binds all the routes and prepares for Start
 func Initialise(config Config) *App {
@@ -44,6 +50,9 @@ func Initialise(config Config) *App {
 			zap.Error(err))
 	}
 	app.SetupAuth()
+
+	// Set up session manager
+	app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)

@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/dgrijalva/jwt-go"
@@ -63,32 +63,18 @@ func (app App) SetupAuth() {
 	}
 }
 
-// AuthenticateLoginRequest is called for /login requests and authenticates the request body against
-// the database
-func (app *App) AuthenticateLoginRequest(r *http.Request) (success bool, err error) {
-	var authRequest AuthRequest
-	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&authRequest)
-	if err != nil {
-		return
-	}
-
-	user, err := app.Storage.GetUserByName(authRequest.Username)
-	if err != nil {
-		return false, fmt.Errorf("database lookup failed: %v", err)
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password)); err != nil {
-		return false, err
-	}
-
-	return true, nil
+// NewToken generates a JWT token and returns it as a string
+func (app App) NewToken(exp time.Duration) (token string, err error) {
+	tokenObj := jwt.New(jwt.SigningMethodHS256)
+	claims := tokenObj.Claims.(jwt.MapClaims)
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	token, err = tokenObj.SignedString([]byte(app.config.AuthSecret))
+	return
 }
 
 // Authenticated is a middleware layer for requests that require authentication
 func (app *App) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Debug("received authenticated request")
 		token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
@@ -109,9 +95,20 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 		_, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			WriteResponseError(w, http.StatusInternalServerError, errors.New("failed to get token claim"))
+			return
 		}
 
-		logger.Debug("successfully handled authenticated request")
+		session, err := app.Sessions.Get(r, UserSessionCookie)
+		if err != nil {
+			WriteResponseError(w, http.StatusInternalServerError, errors.New("failed to read session cookies"))
+			return
+		}
+
+		authenticated, ok := session.Values["authenticated"].(bool)
+		if !ok || !authenticated {
+			WriteResponseError(w, http.StatusUnauthorized, errors.New("not authorized"))
+			return
+		}
 
 		next.ServeHTTP(w, r)
 	})

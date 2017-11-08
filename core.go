@@ -80,11 +80,12 @@ func Initialise(config Config) *App {
 func (app *App) Start() {
 	defer app.cancel()
 
-	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
-
-	err := http.ListenAndServe(app.config.Bind, handlers.CORS(headersOk, originsOk, methodsOk)(app.router))
+	err := http.ListenAndServe(app.config.Bind, handlers.CORS(
+		handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Set-Cookie", "Cookie"}),
+		handlers.AllowedOrigins([]string{"http://localhost:3000"}),
+		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+		handlers.AllowCredentials(),
+	)(app.router))
 
 	logger.Fatal("http server encountered fatal error",
 		zap.Error(err))

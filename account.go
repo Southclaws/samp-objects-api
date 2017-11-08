@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
@@ -92,10 +91,6 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to lookup user by name"))
 		return
 	}
-
-	logger.Debug("pw",
-		zap.String("db", string(user.Password)),
-		zap.String("pl", string(authRequest.Password)))
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password)); err != nil {
 		WriteResponseError(w, http.StatusUnauthorized, errors.Wrap(err, "invalid password"))

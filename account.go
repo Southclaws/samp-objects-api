@@ -37,6 +37,18 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ensure password field is a SHA256
+	if len(user.Password) != 64 {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "password not in valid format"))
+		return
+	}
+
+	passhash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		logger.Fatal("failed to generate bcrypt from sha256")
+	}
+	user.Password = types.UserPass(passhash)
+
 	err = app.Storage.CreateUser(user)
 	if err != nil {
 		if err == storage.ErrUsernameAlreadyExists {
@@ -101,6 +113,10 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to lookup user by name"))
 		return
 	}
+
+	logger.Debug("pw",
+		zap.String("db", string(user.Password)),
+		zap.String("pl", string(authRequest.Password)))
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password)); err != nil {
 		WriteResponseError(w, http.StatusUnauthorized, errors.Wrap(err, "invalid password"))

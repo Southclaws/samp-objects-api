@@ -113,6 +113,16 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 	})
 }
 
+// Authorized provides authorization middleware for handlers that have per-user access
+func (app *App) Authorized() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // GenerateRandomBytes does what it says on the tin
 // From https://elithrar.github.io/article/generating-secure-random-numbers-crypto-rand/ 2017-06-20
 func GenerateRandomBytes(n int) ([]byte, error) {

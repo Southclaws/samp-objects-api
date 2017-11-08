@@ -58,7 +58,7 @@ func (db Database) DeleteUser(user types.User) (err error) {
 
 // GetUser returns a types.User by their unique ID
 func (db Database) GetUser(id types.UserID) (user types.User, err error) {
-	err = db.users.Find(bson.M{"id": id}).One(user)
+	err = db.users.Find(bson.M{"id": id}).One(&user)
 	if err != nil {
 		return
 	}
@@ -68,7 +68,7 @@ func (db Database) GetUser(id types.UserID) (user types.User, err error) {
 
 // GetUserByName returns a types.User by their username
 func (db Database) GetUserByName(username types.UserName) (user types.User, err error) {
-	err = db.users.Find(bson.M{"username": username}).One(user)
+	err = db.users.Find(bson.M{"username": username}).One(&user)
 	return
 }
 

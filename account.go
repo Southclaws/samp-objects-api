@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 
+	"bitbucket.org/Southclaws/samp-objects-api/storage"
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
@@ -18,44 +19,44 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 
 	raw, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to read request body")}, nil)
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read request body"))
 		return
 	}
 	r.Body.Close()
 
 	err = json.Unmarshal(raw, &user)
 	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to decode request body")}, nil)
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to decode request body"))
 		return
 	}
 
 	err = app.Storage.CreateUser(user)
-	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to create new user")}, nil)
+	if err != nil && err == storage.ErrUsernameAlreadyExists {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to create new user"))
 		return
 	}
 
 	var auth AuthResponse
 
-	tokenObj := jwt.New(jwt.SigningMethodHS256)
-	claims := tokenObj.Claims.(jwt.MapClaims)
+	if err == storage.ErrUsernameAlreadyExists {
+		auth.Message = "username taken"
+	} else {
+		tokenObj := jwt.New(jwt.SigningMethodHS256)
+		claims := tokenObj.Claims.(jwt.MapClaims)
 
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+		claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 
-	tokenString, err := tokenObj.SignedString([]byte(app.config.AuthSecret))
-	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to sign authentication token")}, nil)
-		return
-	}
-
-	auth = AuthResponse{
-		Message: "success",
-		Token:   tokenString,
+		tokenString, err := tokenObj.SignedString([]byte(app.config.AuthSecret))
+		if err != nil {
+			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
+			return
+		}
+		auth.Token = tokenString
 	}
 
 	payload, err := json.Marshal(auth)
 	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to encode authentication response")}, nil)
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode authentication response"))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -66,7 +67,7 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 func (app App) Login(w http.ResponseWriter, r *http.Request) {
 	success, err := app.AuthenticateLoginRequest(r)
 	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to authenticate login request")}, nil)
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to authenticate login request"))
 		return
 	}
 
@@ -79,7 +80,7 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 
 		tokenString, err := tokenObj.SignedString([]byte(app.config.AuthSecret))
 		if err != nil {
-			WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to sign authentication token")}, nil)
+			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to sign authentication token"))
 			return
 		}
 
@@ -96,7 +97,7 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := json.Marshal(auth)
 	if err != nil {
-		WriteResponse(w, http.StatusInternalServerError, []error{errors.Wrap(err, "failed to encode authentication response")}, nil)
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode authentication response"))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

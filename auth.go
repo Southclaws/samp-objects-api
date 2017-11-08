@@ -92,20 +92,18 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 			return []byte(app.config.AuthSecret), nil
 		})
 		if err != nil {
-			WriteResponse(w, http.StatusInternalServerError,
-				[]error{errors.Wrap(err, "failed to parse Authorization header")},
-				map[string]interface{}{"headers": r.Header})
+			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse Authorization header"))
 			return
 		}
 
 		if !token.Valid {
-			WriteResponse(w, http.StatusUnauthorized, []error{errors.Wrap(err, "request failed authentication")}, nil)
+			WriteResponseError(w, http.StatusUnauthorized, errors.Wrap(err, "request failed authentication"))
 			return
 		}
 
 		_, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			WriteResponse(w, http.StatusInternalServerError, []error{errors.New("failed to get token claim")}, nil)
+			WriteResponseError(w, http.StatusInternalServerError, errors.New("failed to get token claim"))
 		}
 
 		logger.Debug("successfully handled authenticated request")

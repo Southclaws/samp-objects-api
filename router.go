@@ -32,6 +32,7 @@ func (app App) routes() (routes []Route) {
 			Authenticated: false,
 			handler:       index,
 		},
+		// /accounts/
 		{
 			Name:          "login",
 			Methods:       []string{"OPTIONS", "POST"},
@@ -52,6 +53,14 @@ func (app App) routes() (routes []Route) {
 			Path:          "/v0/accounts/info",
 			Authenticated: true,
 			handler:       app.Info,
+		},
+		// /objects/
+		{
+			Name:          "list",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/objects/:objectid",
+			Authenticated: true,
+			handler:       app.Objects,
 		},
 	}
 	return

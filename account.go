@@ -54,8 +54,10 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 
 	err = app.Storage.CreateUser(user)
 	if err != nil {
-		if err == storage.ErrUsernameAlreadyExists {
+		if err == storage.ErrUserNameAlreadyExists {
 			WriteResponseError(w, http.StatusConflict, errors.Wrap(err, "username already registered"))
+		} else if err == storage.ErrUserEmailAlreadyExists {
+			WriteResponseError(w, http.StatusTeapot, errors.Wrap(err, "email already registered"))
 		} else {
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to create new user"))
 		}

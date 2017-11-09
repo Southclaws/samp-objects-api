@@ -56,7 +56,7 @@ func (app App) SetupAuth() {
 
 		if err = app.Storage.CreateUser(
 			types.User{
-				Username: types.UserName("root"),
+				Name:     types.UserName("root"),
 				Email:    types.UserEmail("admin@samp-objects.com"),
 				Password: types.UserPass(serverHash),
 			}); err != nil {

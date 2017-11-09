@@ -89,6 +89,7 @@ func (database *Database) ensureUserCollection(config Config) (err error) {
 	database.users = database.session.DB(config.MongoName).C("users")
 
 	err = database.users.EnsureIndex(mgo.Index{
+		Name:   "UNIQUE_ID",
 		Key:    []string{"id"},
 		Unique: true,
 	})
@@ -96,7 +97,16 @@ func (database *Database) ensureUserCollection(config Config) (err error) {
 		return err
 	}
 	err = database.users.EnsureIndex(mgo.Index{
-		Key:    []string{"username"},
+		Name:   "UNIQUE_NAME",
+		Key:    []string{"name"},
+		Unique: true,
+	})
+	if err != nil {
+		return err
+	}
+	err = database.users.EnsureIndex(mgo.Index{
+		Name:   "UNIQUE_EMAIL",
+		Key:    []string{"email"},
 		Unique: true,
 	})
 

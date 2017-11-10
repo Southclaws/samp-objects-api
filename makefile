@@ -72,4 +72,20 @@ test-container: build-test
 mongodb:
 	-docker stop mongodb
 	-docker rm mongodb
-	docker run --name mongodb -p 27017:27017 -d mongo
+	docker run \
+		--name mongodb \
+		-p 27017:27017 \
+		-d \
+		mongo
+
+minio:
+	-docker stop minio
+	-docker rm minio
+	docker run \
+		--name minio \
+		-p 9000:9000 \
+		-d \
+		-e MINIO_ACCESS_KEY=default \
+		-e MINIO_SECRET_KEY=12345678 \
+		minio/minio server /data
+	docker logs minio

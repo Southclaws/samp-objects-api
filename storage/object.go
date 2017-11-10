@@ -2,12 +2,12 @@ package storage
 
 import (
 	"bytes"
-	"errors"
+	"io"
 	"path/filepath"
 	"strings"
 
 	"github.com/minio/minio-go"
-
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
@@ -105,7 +105,73 @@ func (db Database) GetObject(objectID types.ObjectID) (object types.Object, err 
 }
 
 // GetObjectFiles returns an object's associated files in memory
-func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.ObjectFiles) {
+func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.ObjectFiles, err error) {
+	if err = objectID.Validate(); err != nil {
+		return
+	}
+
+	doneCh := make(chan struct{})
+	infoCh := db.store.ListObjects(db.StoreBucket, string(objectID), true, doneCh)
+	var (
+		file *minio.Object
+		stat minio.ObjectInfo
+		n    int
+	)
+	for info := range infoCh {
+		ext := filepath.Ext(info.Key)
+		if ext == ".dff" {
+			objectDFF := types.ObjectDFF{}
+			file, err = db.store.GetObject(db.StoreBucket, info.Key, minio.GetObjectOptions{})
+			if err != nil {
+				err = errors.Wrap(err, "failed to get object info")
+				return
+			}
+			defer file.Close() // nolint
+
+			stat, err = file.Stat()
+			if err != nil {
+				err = errors.Wrap(err, "failed to stat file")
+				return
+			}
+
+			objectDFF.Data = make([]byte, stat.Size)
+			n, err = file.Read(objectDFF.Data)
+			if err != nil && !(err == io.EOF && int64(n) == stat.Size) {
+				err = errors.Wrap(err, "failed to read byte stream")
+				return
+			}
+			err = nil
+
+			objectDFF.Name = filepath.Base(info.Key)
+			objectFiles.Models = append(objectFiles.Models, objectDFF)
+		} else if ext == ".txd" {
+			objectTXD := types.ObjectTXD{}
+			file, err = db.store.GetObject(db.StoreBucket, info.Key, minio.GetObjectOptions{})
+			if err != nil {
+				err = errors.Wrap(err, "failed to get object info")
+				return
+			}
+			defer file.Close() // nolint
+
+			stat, err = file.Stat()
+			if err != nil {
+				err = errors.Wrap(err, "failed to stat file")
+				return
+			}
+
+			objectTXD.Data = make([]byte, stat.Size)
+			n, err = file.Read(objectTXD.Data)
+			if err != nil && !(err == io.EOF && int64(n) == stat.Size) {
+				err = errors.Wrap(err, "failed to read byte stream")
+				return
+			}
+			err = nil
+
+			objectTXD.Name = filepath.Base(info.Key)
+			objectFiles.Textures = append(objectFiles.Textures, objectTXD)
+		}
+	}
+
 	return
 }
 

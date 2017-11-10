@@ -1,8 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"errors"
+	"path/filepath"
 	"strings"
+
+	"github.com/minio/minio-go"
 
 	"gopkg.in/mgo.v2/bson"
 
@@ -16,9 +20,35 @@ var (
 )
 
 // CreateObject creates a new object in the database
-func (db Database) CreateObject(object types.Object) (err error) {
+func (db Database) CreateObject(object types.Object, objectData types.ObjectFiles) (err error) {
 	if err = object.Validate(); err != nil {
 		return
+	}
+
+	for _, model := range objectData.Models {
+		objectReader := bytes.NewReader(model.Data)
+		_, err = db.store.PutObject(
+			db.StoreBucket,
+			filepath.Join(string(object.ID), model.Name),
+			objectReader,
+			int64(-1),
+			minio.PutObjectOptions{})
+		if err != nil {
+			return
+		}
+	}
+
+	for _, texture := range objectData.Textures {
+		objectReader := bytes.NewReader(texture.Data)
+		_, err = db.store.PutObject(
+			db.StoreBucket,
+			filepath.Join(string(object.ID), texture.Name),
+			objectReader,
+			int64(-1),
+			minio.PutObjectOptions{})
+		if err != nil {
+			return
+		}
 	}
 
 	err = db.objects.Insert(object)
@@ -56,12 +86,17 @@ func (db Database) DeleteObject(object types.Object) (err error) {
 }
 
 // GetObject returns a types.Object by their unique ID
-func (db Database) GetObject(id types.ObjectID) (object types.Object, err error) {
-	err = db.objects.Find(bson.M{"id": id}).One(&object)
+func (db Database) GetObject(objectID types.ObjectID) (object types.Object, err error) {
+	err = db.objects.Find(bson.M{"id": objectID}).One(&object)
 	if err != nil {
 		return
 	}
 
+	return
+}
+
+// GetObjectFiles returns an object's associated files in memory
+func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.ObjectFiles) {
 	return
 }
 

@@ -1,10 +1,13 @@
 package storage
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"testing"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
+	minio "github.com/minio/minio-go"
 )
 
 func must(err error, rest ...interface{}) {
@@ -87,8 +90,41 @@ func TestDatabase_CreateObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := db.CreateObject(tt.args.object); (err != nil) != tt.wantErr {
+			// read the test files into memory
+			model, err := ioutil.ReadFile("./tests/test_model.dff")
+			if err != nil {
+				panic(err)
+			}
+			texture, err := ioutil.ReadFile("./tests/test_texture.txd")
+			if err != nil {
+				panic(err)
+			}
+
+			objectData := types.ObjectFiles{
+				Models: []types.ObjectDFF{
+					{Name: "test_model.dff", Data: model},
+				},
+				Textures: []types.ObjectTXD{
+					{Name: "test_texture.txd", Data: texture},
+				},
+			}
+
+			// do the test
+			if err := db.CreateObject(tt.args.object, objectData); (err != nil) != tt.wantErr {
 				t.Errorf("Database.CreateObject() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				// ensure files are present in S3
+				_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.object.ID), "test_model.dff"), minio.StatObjectOptions{})
+				if err != nil {
+					panic(err)
+				}
+
+				_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.object.ID), "test_texture.txd"), minio.StatObjectOptions{})
+				if err != nil {
+					panic(err)
+				}
 			}
 		})
 	}

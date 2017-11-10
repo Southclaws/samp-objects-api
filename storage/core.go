@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/minio/minio-go"
 	"gopkg.in/mgo.v2"
 )
 
@@ -11,6 +13,10 @@ type Database struct {
 	session *mgo.Session
 	users   *mgo.Collection
 	objects *mgo.Collection
+	store   *minio.Client
+
+	StoreBucket string
+	StoreLocation string
 }
 
 // Config represents the configuration required to interact with the database
@@ -21,6 +27,13 @@ type Config struct {
 	MongoPass           string
 	MongoName           string
 	MongoCollectionInfo mgo.CollectionInfo
+	StoreHost           string
+	StorePort           string
+	StoreAccess         string
+	StoreSecret         string
+	StoreSecure         bool
+	StoreBucket         string
+	StoreLocation       string
 }
 
 // New simply provides a function to set up a MongoDB connection and perform some checks
@@ -55,6 +68,38 @@ func New(config Config) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	database.store, err = minio.New(
+		fmt.Sprintf("%s:%s", config.StoreHost, config.StorePort),
+		config.StoreAccess,
+		config.StoreSecret,
+		config.StoreSecure)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := database.store.BucketExists(config.StoreBucket)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		err = database.store.MakeBucket(config.StoreBucket, config.StoreLocation)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	exists, err = database.store.BucketExists(config.StoreBucket)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("bucket was not created")
+	}
+
+	database.StoreBucket = config.StoreBucket
+	database.StoreLocation = config.StoreLocation
 
 	return &database, nil
 }

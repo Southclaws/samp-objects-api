@@ -35,6 +35,24 @@ type Object struct {
 	TextureHash Hash              `json:"texture_hash"`
 }
 
+// ObjectFile represents a single file the user uploaded
+type ObjectFile struct {
+	Name string `json:"name"`
+	Data []byte `json:"data"`
+}
+
+// ObjectDFF represents a model file
+type ObjectDFF ObjectFile
+
+// ObjectTXD represents a texture file
+type ObjectTXD ObjectFile
+
+// ObjectFiles represents a collection of models and textures
+type ObjectFiles struct {
+	Models   []ObjectDFF `json:"models"`
+	Textures []ObjectTXD `json:"textures"`
+}
+
 var (
 	// ObjectIDMatch is a regular expression used to validate object IDs
 	ObjectIDMatch = regexp.MustCompile(`[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}`)

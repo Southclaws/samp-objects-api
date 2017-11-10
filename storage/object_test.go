@@ -165,19 +165,32 @@ func TestDatabase_UpdateObject(t *testing.T) {
 
 func TestDatabase_DeleteObject(t *testing.T) {
 	type args struct {
-		object types.Object
+		objectID types.ObjectID
 	}
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		{"v owner1 object1", args{types.Object{ID: "00000000-0000-0000-0000-300000000000", Owner: types.UserID("00000002-0000-0000-0000-000000000000"), Name: "object1", Description: "object1", Category: "category1", Tags: []types.ObjectTag{"tag1", "tag2"}, ImageHash: "123", ModelHash: "456", TextureHash: "789"}}, false},
+		{"v owner1 object1", args{"00000000-0000-0000-0000-300000000000"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := db.DeleteObject(tt.args.object); (err != nil) != tt.wantErr {
+			if err := db.DeleteObject(tt.args.objectID); (err != nil) != tt.wantErr {
 				t.Errorf("Database.DeleteObject() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				// ensure files are present in S3
+				_, err := db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_model.dff"), minio.StatObjectOptions{})
+				if err == nil {
+					panic(err)
+				}
+
+				_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_texture.txd"), minio.StatObjectOptions{})
+				if err == nil {
+					panic(err)
+				}
 			}
 		})
 	}

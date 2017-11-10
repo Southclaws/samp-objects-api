@@ -72,12 +72,21 @@ func (db Database) UpdateObject(object types.Object) (err error) {
 }
 
 // DeleteObject deletes a object
-func (db Database) DeleteObject(object types.Object) (err error) {
-	if err = object.Validate(); err != nil {
+func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
+	if err = objectID.Validate(); err != nil {
 		return
 	}
 
-	err = db.objects.Remove(bson.M{"id": object.ID})
+	doneCh := make(chan struct{})
+	infoCh := db.store.ListObjects(db.StoreBucket, string(objectID), true, doneCh)
+	for object := range infoCh {
+		err = db.store.RemoveObject(db.StoreBucket, object.Key)
+		if err != nil {
+			return
+		}
+	}
+
+	err = db.objects.Remove(bson.M{"id": objectID})
 	if err != nil {
 		return
 	}

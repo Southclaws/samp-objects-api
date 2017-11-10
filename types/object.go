@@ -42,8 +42,8 @@ var (
 
 // ValidatePartial is for validating pre-upload objects
 func (object Object) ValidatePartial() (err error) {
-	if object.ID == "" {
-		return errors.New("id is empty")
+	if err = object.ID.Validate(); err != nil {
+		return
 	}
 	if object.Owner == "" {
 		return errors.New("owner is empty")

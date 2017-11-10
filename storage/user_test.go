@@ -19,20 +19,20 @@ func TestDatabase_CreateUser(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"v user1", args{types.User{"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1", []types.ObjectID{}}}, false},
-		{"v user2", args{types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2", "pass2", []types.ObjectID{}}}, false},
-		{"v user3", args{types.User{"30000000-0000-0000-0000-000000000000", "user3", "mail3", "pass3", []types.ObjectID{}}}, false},
+		{"v user1", args{types.User{"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1"}}, false},
+		{"v user2", args{types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2", "pass2"}}, false},
+		{"v user3", args{types.User{"30000000-0000-0000-0000-000000000000", "user3", "mail3", "pass3"}}, false},
 
 		// already used name
-		{"i user1 again", args{types.User{"40000000-0000-0000-0000-000000000000", "user1", "mail4", "pass4", []types.ObjectID{}}}, true},
+		{"i user1 again", args{types.User{"40000000-0000-0000-0000-000000000000", "user1", "mail4", "pass4"}}, true},
 
 		// already used mail
-		{"i user5", args{types.User{"50000000-0000-0000-0000-000000000000", "user5", "mail3", "pass5", []types.ObjectID{}}}, true},
+		{"i user5", args{types.User{"50000000-0000-0000-0000-000000000000", "user5", "mail3", "pass5"}}, true},
 
 		// invalid fielss
-		{"i user6", args{types.User{"60000000-0000-0000-0000-000000000000", "", "mail6", "pass6", []types.ObjectID{}}}, true},
-		{"i user7", args{types.User{"70000000-0000-0000-0000-000000000000", "user7", "", "pass7", []types.ObjectID{}}}, true},
-		{"i user8", args{types.User{"80000000-0000-0000-0000-000000000000", "user8", "mail8", "", []types.ObjectID{}}}, true},
+		{"i user6", args{types.User{"60000000-0000-0000-0000-000000000000", "", "mail6", "pass6"}}, true},
+		{"i user7", args{types.User{"70000000-0000-0000-0000-000000000000", "user7", "", "pass7"}}, true},
+		{"i user8", args{types.User{"80000000-0000-0000-0000-000000000000", "user8", "mail8", ""}}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,9 +44,9 @@ func TestDatabase_CreateUser(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1", []types.ObjectID{}}
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3", "mail3", "pass3", []types.ObjectID{}}
+// {"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1"}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3", "mail3", "pass3"}
 
 func TestDatabase_UpdateUser(t *testing.T) {
 	type args struct {
@@ -57,10 +57,10 @@ func TestDatabase_UpdateUser(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"v user1", args{types.User{"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1new", []types.ObjectID{}}}, false},
-		{"v user2", args{types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}}, false},
-		{"v user3", args{types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}}, false},
-		{"i id", args{types.User{"01000000-0000-0000-0000-000000000000", "user4", "mail4", "pass4", []types.ObjectID{}}}, true},
+		{"v user1", args{types.User{"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1new"}}, false},
+		{"v user2", args{types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}}, false},
+		{"v user3", args{types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}}, false},
+		{"i id", args{types.User{"01000000-0000-0000-0000-000000000000", "user4", "mail4", "pass4"}}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,9 +72,9 @@ func TestDatabase_UpdateUser(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1new", []types.ObjectID{}}
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}
+// {"10000000-0000-0000-0000-000000000000", "user1", "mail1", "pass1new"}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}
 
 func TestDatabase_DeleteUser(t *testing.T) {
 	type args struct {
@@ -99,8 +99,8 @@ func TestDatabase_DeleteUser(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}
 
 func TestDatabase_GetUser(t *testing.T) {
 	type args struct {
@@ -113,8 +113,8 @@ func TestDatabase_GetUser(t *testing.T) {
 		wantErr  bool
 	}{
 		{"i user1", args{types.UserID("10000000-0000-0000-0000-000000000000")}, types.User{}, true},
-		{"v user2", args{types.UserID("20000000-0000-0000-0000-000000000000")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}, false},
-		{"v user3", args{types.UserID("30000000-0000-0000-0000-000000000000")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}, false},
+		{"v user2", args{types.UserID("20000000-0000-0000-0000-000000000000")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, false},
+		{"v user3", args{types.UserID("30000000-0000-0000-0000-000000000000")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, false},
 		{"i user4", args{types.UserID("40000000-0000-0000-0000-000000000000")}, types.User{}, true},
 	}
 	for _, tt := range tests {
@@ -132,8 +132,8 @@ func TestDatabase_GetUser(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}
 
 func TestDatabase_GetUserByName(t *testing.T) {
 	type args struct {
@@ -146,8 +146,8 @@ func TestDatabase_GetUserByName(t *testing.T) {
 		wantErr  bool
 	}{
 		{"i user1", args{types.UserName("user1")}, types.User{}, true},
-		{"v user2", args{types.UserName("user2")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}, false},
-		{"v user3", args{types.UserName("user3new")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}, false},
+		{"v user2", args{types.UserName("user2")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, false},
+		{"v user3", args{types.UserName("user3new")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, false},
 		{"i user3", args{types.UserName("user3")}, types.User{}, true},
 		{"i user4", args{types.UserName("user4")}, types.User{}, true},
 		{"i blank", args{types.UserName("")}, types.User{}, true},
@@ -168,8 +168,8 @@ func TestDatabase_GetUserByName(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}
 
 func TestDatabase_UserExists(t *testing.T) {
 	type args struct {
@@ -202,8 +202,8 @@ func TestDatabase_UserExists(t *testing.T) {
 }
 
 // At this point, the following users exist in the database:
-// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2", []types.ObjectID{}}
-// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3", []types.ObjectID{}}
+// {"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}
+// {"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}
 
 func TestDatabase_UserExistsByName(t *testing.T) {
 	type args struct {

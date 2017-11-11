@@ -12,6 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -56,11 +57,12 @@ func (app App) SetupAuth() {
 
 		if err = app.Storage.CreateUser(
 			types.User{
+				ID:       types.UserID(uuid.New().String()),
 				Name:     types.UserName("root"),
 				Email:    types.UserEmail("admin@samp-objects.com"),
 				Password: types.UserPass(serverHash),
 			}); err != nil {
-			logger.Fatal("failed to create root user")
+			logger.Fatal("failed to create root user", zap.Error(err))
 		}
 		logger.Info("created new root account", zap.String("password", password))
 	}

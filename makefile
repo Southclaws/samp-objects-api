@@ -19,6 +19,13 @@ local: fast
 	MONGO_PORT=27017 \
 	MONGO_NAME=sampobjects \
 	AUTH_SECRET=$(AUTH_SECRET) \
+	STORE_HOST=localhost \
+	STORE_PORT=9000 \
+	STORE_ACCESS=default \
+	STORE_SECRET=12345678 \
+	STORE_SECURE=false \
+	STORE_BUCKET=samp-objects \
+	STORE_LOCATION=AMS3 \
 	DEBUG=1 \
 	./samp-objects-api
 
@@ -55,7 +62,12 @@ run:
 		-e MONGO_PORT=27017 \
 		-e MONGO_NAME=sampobjects \
 		-e AUTH_SECRET=$(AUTH_SECRET) \
-		-
+		-e STORE_HOST=localhost \
+		-e STORE_PORT=9000 \
+		-e STORE_ACCESS=default \
+		-e STORE_SECRET=12345678 \
+		-e STORE_SECURE=false \
+		-e STORE_BUCKET=samp-objects \
 		southclaws/samp-objects:$(VERSION)
 
 enter:

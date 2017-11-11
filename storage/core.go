@@ -15,7 +15,7 @@ type Database struct {
 	objects *mgo.Collection
 	store   *minio.Client
 
-	StoreBucket string
+	StoreBucket   string
 	StoreLocation string
 }
 

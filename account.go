@@ -25,7 +25,7 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close()
 
 	session, err := app.Sessions.Get(r, UserSessionCookie)
-	if err != nil {
+	if err != nil && err.Error() != "securecookie: the value is not valid" {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session"))
 		return
 	}
@@ -80,7 +80,7 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close()
 
 	session, err := app.Sessions.Get(r, UserSessionCookie)
-	if err != nil {
+	if err != nil && err.Error() != "securecookie: the value is not valid" {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session"))
 		return
 	}
@@ -97,8 +97,13 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password)); err != nil {
-		WriteResponseError(w, http.StatusUnauthorized, errors.Wrap(err, "invalid password"))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
+	if err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			WriteResponseError(w, http.StatusUnauthorized, errors.New("invalid password"))
+		} else {
+			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to process password"))
+		}
 		return
 	}
 
@@ -111,13 +116,13 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 func (app App) Refresh(w http.ResponseWriter, r *http.Request) {
 	session, err := app.Sessions.Get(r, UserSessionCookie)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session"))
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session, clear cookies and log in again"))
 		return
 	}
 
 	userIDraw, ok := session.Values["UserID"]
 	if !ok {
-		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read or create cookie session"))
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read user ID from session"))
 		return
 	}
 
@@ -134,13 +139,13 @@ func (app App) Refresh(w http.ResponseWriter, r *http.Request) {
 func (app App) Info(w http.ResponseWriter, r *http.Request) {
 	session, err := app.Sessions.Get(r, UserSessionCookie)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session"))
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session, clear cookies and log in again"))
 		return
 	}
 
 	userIDraw, ok := session.Values["UserID"]
 	if !ok {
-		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read or create cookie session"))
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read user ID from session"))
 		return
 	}
 

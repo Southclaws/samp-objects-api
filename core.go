@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
@@ -21,6 +23,7 @@ type App struct {
 	router   *mux.Router
 	Storage  *storage.Database
 	Sessions *sessions.CookieStore
+	Pending  *cache.Cache
 }
 
 const (
@@ -61,6 +64,9 @@ func Initialise(config Config) *App {
 	// Set up session manager
 	app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 
+	// Set up pending uploads cache
+	app.Pending = cache.New(cache.DefaultExpiration, time.Hour)
+
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)
 
@@ -88,9 +94,9 @@ func (app *App) Start() {
 	defer app.cancel()
 
 	err := http.ListenAndServe(app.config.Bind, handlers.CORS(
-		handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Set-Cookie", "Cookie"}),
+		handlers.AllowedHeaders([]string{"Cache-Control", "X-File-Name", "X-Requested-With", "X-File-Name", "Content-Type", "Authorization", "Set-Cookie", "Cookie"}),
 		handlers.AllowedOrigins([]string{"http://localhost:3000"}),
-		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+		handlers.AllowedMethods([]string{"OPTIONS", "GET", "HEAD", "POST", "PUT"}),
 		handlers.AllowCredentials(),
 	)(app.router))
 

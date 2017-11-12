@@ -65,7 +65,7 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "objects",
 			Methods:       []string{"OPTIONS", "GET"},
-			Path:          "/v0/objects/{objectid}",
+			Path:          "/v0/objects/{userName}/{objectName}",
 			Authenticated: false,
 			handler:       app.Objects,
 		},
@@ -75,7 +75,14 @@ func (app App) routes() (routes []Route) {
 			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/images/{objectid}",
 			Authenticated: false,
-			handler:       app.ObjectImage,
+			handler:       app.ObjectThumb,
+		},
+		{
+			Name:          "images",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/images/{objectid}/{imageName}",
+			Authenticated: false,
+			handler:       app.ObjectImages,
 		},
 		// /object/
 		{

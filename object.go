@@ -50,17 +50,13 @@ func (app App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
-// Objects handles the /objects/:objectid endpoint, it returns the metadata for a specific object
+// Objects handles the /objects/:userName/:objectName endpoint, it returns the metadata for a specific object
 func (app App) Objects(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	rawID, ok := vars["objectid"]
-	if !ok {
-		WriteResponseError(w, http.StatusBadRequest, errors.New("no object ID specified"))
-		return
-	}
-	objectID := types.ObjectID(rawID)
+	userName := types.UserName(vars["userName"])
+	objectName := types.ObjectName(vars["objectName"])
 
-	objects, err := app.Storage.GetObject(objectID)
+	objects, err := app.Storage.GetUserObject(userName, objectName)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, err)
 		return
@@ -75,17 +71,25 @@ func (app App) Objects(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
-// ObjectImage handles requests for object image thumbails
-func (app App) ObjectImage(w http.ResponseWriter, r *http.Request) {
+// ObjectThumb handles requests for object image thumbails
+func (app App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	rawID, ok := vars["objectid"]
-	if !ok {
-		WriteResponseError(w, http.StatusBadRequest, errors.New("no object ID specified"))
-		return
-	}
-	objectID := types.ObjectID(rawID)
+	objectID := types.ObjectID(vars["objectid"])
 
 	err := app.Storage.GetObjectThumb(objectID, w)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
+		return
+	}
+}
+
+// ObjectImages handles requests for object images by name
+func (app App) ObjectImages(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	objectID := types.ObjectID(vars["objectid"])
+	imageName := types.File(vars["imageName"])
+
+	err := app.Storage.GetObjectImage(objectID, imageName, w)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
 		return

@@ -88,6 +88,27 @@ func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (er
 	return
 }
 
+// GetObjectImage writes the specified image file from an object to the given writer
+func (db Database) GetObjectImage(objectID types.ObjectID, imageName types.File, writer io.Writer) (err error) {
+	if err = objectID.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid object ID format")
+		return
+	}
+
+	storeObject, err := db.store.GetObject(
+		db.StoreBucket,
+		filepath.Join(string(objectID), string(imageName)),
+		minio.GetObjectOptions{})
+	if err != nil {
+		err = errors.Wrap(err, "failed to get file from object store")
+		return
+	}
+
+	_, err = io.Copy(writer, storeObject)
+
+	return
+}
+
 // DeleteObject deletes a object
 func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
 	if err = objectID.Validate(); err != nil {
@@ -120,6 +141,23 @@ func (db Database) GetObjects( /*todo: query params*/ ) (objects []types.Object,
 // GetObject returns a types.Object by their unique ID
 func (db Database) GetObject(objectID types.ObjectID) (object types.Object, err error) {
 	err = db.objects.Find(bson.M{"id": objectID}).One(&object)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// GetUserObject returns a types.Object from a specific owner and an object name
+func (db Database) GetUserObject(userName types.UserName, objectName types.ObjectName) (object types.Object, err error) {
+	if err = userName.Validate(); err != nil {
+		return
+	}
+	// if err = objectName.Validate(); err != nil {
+	// 	return
+	// }
+
+	err = db.objects.Find(bson.M{"name": objectName, "ownername": userName}).One(&object)
 	if err != nil {
 		return
 	}

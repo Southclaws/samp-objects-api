@@ -82,7 +82,7 @@ run-prod:
 		--name samp-objects-api \
 		--restart on-failure \
 		-d \
-		-p 80:7791 \
+		-p 7791:80 \
 		-e BIND=0.0.0.0:80 \
 		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \

@@ -46,7 +46,7 @@ func New(config Config) (*Database, error) {
 
 	database.session, err = mgo.Dial(fmt.Sprintf("%s:%s", config.MongoHost, config.MongoPort))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to connect to database")
 	}
 
 	if config.MongoPass != "" {
@@ -56,17 +56,17 @@ func New(config Config) (*Database, error) {
 			Password: config.MongoPass,
 		})
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to authenticate to database")
 		}
 	}
 
 	err = database.ensureUserCollection(config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to ensure user collection")
 	}
 	err = database.ensureObjectCollection(config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to ensure object collection")
 	}
 
 	database.store, err = minio.New(
@@ -75,24 +75,24 @@ func New(config Config) (*Database, error) {
 		config.StoreSecret,
 		config.StoreSecure)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to connect to object store")
 	}
 
 	exists, err := database.store.BucketExists(config.StoreBucket)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to check if bucket exists")
 	}
 
 	if !exists {
 		err = database.store.MakeBucket(config.StoreBucket, config.StoreLocation)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to create bucket")
 		}
 	}
 
 	exists, err = database.store.BucketExists(config.StoreBucket)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to check it bucket exists after creation")
 	}
 	if !exists {
 		return nil, errors.New("bucket was not created")

@@ -86,7 +86,7 @@ run-prod:
 		-p 7791:80 \
 		-e DEBUG=1 \
 		-e BIND=0.0.0.0:80 \
-		-e DOMAIN=localhost \
+		-e DOMAIN=samp-objects.com \
 		-e MONGO_USER=sampobjects \
 		-e MONGO_HOST=mongodb \
 		-e MONGO_PORT=27017 \

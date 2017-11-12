@@ -2,6 +2,9 @@ VERSION := $(shell cat VERSION)
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 MONGO_PASS := $(shell cat MONGO_PASS.private)
 AUTH_SECRET := $(shell cat AUTH_SECRET.private)
+STORE_ACCESS := $(shell cat STORE_ACCESS.private)
+STORE_SECRET := $(shell cat STORE_SECRET.private)
+STORE_LOCATION := $(shell cat STORE_LOCATION.private)
 
 .PHONY: version
 
@@ -62,6 +65,7 @@ run:
 		-e MONGO_HOST=localhost \
 		-e MONGO_PORT=27017 \
 		-e MONGO_NAME=sampobjects \
+		-e MONGO_PASS=$(MONGO_PASS) \
 		-e AUTH_SECRET=$(AUTH_SECRET) \
 		-e STORE_HOST=localhost \
 		-e STORE_PORT=9000 \
@@ -70,6 +74,28 @@ run:
 		-e STORE_SECURE=false \
 		-e STORE_BUCKET=samp-objects \
 		-e STORE_LOCATION=AMS3 \
+		southclaws/samp-objects:$(VERSION)
+
+run-prod:
+	-docker rm samp-objects-test
+	docker run \
+		--name samp-objects-test \
+		--network host \
+		-e BIND=localhost:8080 \
+		-e DOMAIN=localhost \
+		-e MONGO_USER=sampobjects \
+		-e MONGO_HOST=localhost \
+		-e MONGO_PORT=27017 \
+		-e MONGO_NAME=sampobjects \
+		-e MONGO_PASS=$(MONGO_PASS) \
+		-e AUTH_SECRET=$(AUTH_SECRET) \
+		-e STORE_HOST=samp-objects.ams3.digitaloceanspaces.com \
+		-e STORE_PORT=443 \
+		-e STORE_ACCESS=$(STORE_ACCESS) \
+		-e STORE_SECRET=$(STORE_SECRET) \
+		-e STORE_SECURE=true \
+		-e STORE_BUCKET=samp-objects \
+		-e STORE_LOCATION=$(STORE_LOCATION) \
 		southclaws/samp-objects:$(VERSION)
 
 enter:

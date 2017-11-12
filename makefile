@@ -57,6 +57,7 @@ run:
 		--name samp-objects-test \
 		--network host \
 		-e BIND=localhost:8080 \
+		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \
 		-e MONGO_HOST=localhost \
 		-e MONGO_PORT=27017 \
@@ -68,6 +69,7 @@ run:
 		-e STORE_SECRET=12345678 \
 		-e STORE_SECURE=false \
 		-e STORE_BUCKET=samp-objects \
+		-e STORE_LOCATION=AMS3 \
 		southclaws/samp-objects:$(VERSION)
 
 enter:

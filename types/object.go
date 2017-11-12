@@ -69,9 +69,6 @@ func (object Object) ValidatePartial() (err error) {
 	if object.Name == "" {
 		return errors.New("name is empty")
 	}
-	if object.Description == "" {
-		return errors.New("description is empty")
-	}
 	return
 }
 

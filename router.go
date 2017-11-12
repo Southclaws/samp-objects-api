@@ -58,9 +58,23 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "list",
 			Methods:       []string{"OPTIONS", "GET"},
-			Path:          "/v0/objects/:objectid",
-			Authenticated: true,
+			Path:          "/v0/objects",
+			Authenticated: false,
 			handler:       app.Objects,
+		},
+		{
+			Name:          "objects",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/objects/:objectid",
+			Authenticated: false,
+			handler:       app.Objects,
+		},
+		{
+			Name:          "upload",
+			Methods:       []string{"OPTIONS", "POST"},
+			Path:          "/v0/upload",
+			Authenticated: true,
+			handler:       app.ObjectUpload,
 		},
 	}
 	return

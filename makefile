@@ -93,7 +93,7 @@ run-prod:
 		-e MONGO_NAME=sampobjects \
 		-e MONGO_PASS=$(MONGO_PASS) \
 		-e AUTH_SECRET=$(AUTH_SECRET) \
-		-e STORE_HOST=samp-objects.ams3.digitaloceanspaces.com \
+		-e STORE_HOST=ams3.digitaloceanspaces.com \
 		-e STORE_PORT=443 \
 		-e STORE_ACCESS=$(STORE_ACCESS) \
 		-e STORE_SECRET=$(STORE_SECRET) \

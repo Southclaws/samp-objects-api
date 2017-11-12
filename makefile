@@ -84,6 +84,7 @@ run-prod:
 		--restart on-failure \
 		-d \
 		-p 7791:80 \
+		-e DEBUG=1 \
 		-e BIND=0.0.0.0:80 \
 		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \

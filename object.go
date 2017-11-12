@@ -52,7 +52,27 @@ func (app App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 
 // Objects handles the /objects/:objectid endpoint, it returns the metadata for a specific object
 func (app App) Objects(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	vars := mux.Vars(r)
+	rawID, ok := vars["objectid"]
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.New("no object ID specified"))
+		return
+	}
+	objectID := types.ObjectID(rawID)
+
+	objects, err := app.Storage.GetObject(objectID)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	payload, err := json.Marshal(objects)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write(payload)
 }
 
 // ObjectImage handles requests for object image thumbails

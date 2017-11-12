@@ -164,9 +164,16 @@ func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.Ob
 	return
 }
 
-// ObjectExists checks if a object exists by their unique ID
+// ObjectExists checks if an object exists by their unique ID
 func (db Database) ObjectExists(objectID types.ObjectID) (exists bool, err error) {
 	count, err := db.objects.Find(bson.M{"id": objectID}).Count()
+	exists = count > 0
+	return
+}
+
+// UserObjectExists checks if an object exists by their name in a user's account
+func (db Database) UserObjectExists(object types.Object) (exists bool, err error) {
+	count, err := db.objects.Find(bson.M{"owner": object.Owner, "name": object.Name}).Count()
 	exists = count > 0
 	return
 }

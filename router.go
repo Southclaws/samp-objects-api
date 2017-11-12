@@ -74,7 +74,7 @@ func (app App) routes() (routes []Route) {
 			Methods:       []string{"OPTIONS", "POST"},
 			Path:          "/v0/object",
 			Authenticated: true,
-			handler:       app.prepObject,
+			handler:       app.PrepareObject,
 		},
 		{
 			Name:          "upload",

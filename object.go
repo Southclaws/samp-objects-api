@@ -22,48 +22,19 @@ import (
 // UploadResponse is the response returned when a client successfully uploads a file
 // this is for FineUploader
 type UploadResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
+	Success bool         `json:"success"`
+	Error   string       `json:"error"`
+	Object  types.Object `json:"object"`
 }
 
 // Objects handles the /objects/:object endpoint, it includes actions for listing all objects,
 // viewing info for a specific object and uploading a new object.
 func (app App) Objects(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	if len(vars) == 0 {
-
-		// No object ID specified:
-		// Either get all objects or propose a new object and get a URL to upload to
-		switch r.Method {
-		case "GET":
-			app.listObjects(w, r)
-		case "POST":
-			app.prepObject(w, r)
-		}
-
-	} else {
-
-		// Object ID specified:
-		// Either get an object's info or update an existing object
-		switch r.Method {
-		case "GET":
-			app.getObject(w, r)
-		case "POST":
-			app.updateObject(w, r)
-		}
-
-	}
-
-	//
 }
 
-// list objects
-func (app App) listObjects(w http.ResponseWriter, r *http.Request) {
-
-}
-
-// post object
-func (app App) prepObject(w http.ResponseWriter, r *http.Request) {
+// PrepareObject receives a types.Object and caches it while responding with the generated unique ID
+// so the client can begin uploading files for that object.
+func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return
@@ -97,6 +68,16 @@ func (app App) prepObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	object.Owner = userID
+
+	exists, err := app.Storage.UserObjectExists(object)
+	if err != nil {
+		return
+	}
+	if exists {
+		WriteResponseError(w, http.StatusConflict, errors.New("object name already in use by user"))
+		return
+	}
+
 	object.ID = types.ObjectID(uuid.New().String())
 
 	// object ID stores the object metadata
@@ -252,6 +233,7 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	resp.Object = object
 	resp.Success = true
 }
 

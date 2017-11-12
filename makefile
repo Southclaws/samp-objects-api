@@ -79,7 +79,7 @@ run:
 run-prod:
 	-docker rm samp-objects-test
 	docker run \
-		--name samp-objects-test \
+		--name samp-objects \
 		--restart on-failure \
 		-d \
 		-e BIND=localhost:8080 \
@@ -98,6 +98,7 @@ run-prod:
 		-e STORE_BUCKET=samp-objects \
 		-e STORE_LOCATION=$(STORE_LOCATION) \
 		southclaws/samp-objects:$(VERSION)
+	docker network connect samp-objects samp-objects
 
 enter:
 	docker run -it --entrypoint=bash southclaws/samp-objects:$(VERSION)

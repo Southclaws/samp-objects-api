@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
@@ -30,6 +29,10 @@ const (
 	// UserSessionCookie is the name used for the Gorilla cookie storage manager
 	UserSessionCookie = "userAuthData"
 )
+
+func ReplaceKeyBeforeDeploy() {
+	// securecookie.GenerateRandomKey(64)
+}
 
 // Initialise sets up a database connection, binds all the routes and prepares for Start
 func Initialise(config Config) *App {
@@ -62,7 +65,7 @@ func Initialise(config Config) *App {
 	app.SetupAuth()
 
 	// Set up session manager
-	app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
+	app.Sessions = sessions.NewCookieStore([]byte(`REPLACE ME`))
 
 	// Set up pending uploads cache
 	app.Pending = cache.New(cache.DefaultExpiration, time.Hour)

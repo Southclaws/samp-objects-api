@@ -80,7 +80,7 @@ run-prod:
 	-docker rm samp-objects-test
 	docker run \
 		--name samp-objects-test \
-		--network host \
+		--restart on-failure
 		-e BIND=localhost:8080 \
 		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \

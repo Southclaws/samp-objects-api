@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
-	"github.com/minio/minio-go"
 )
 
 func must(err error, rest ...interface{}) {
@@ -227,12 +226,12 @@ func TestDatabase_DeleteObject(t *testing.T) {
 
 			if !tt.wantErr {
 				// ensure files are present in S3
-				_, err := db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_model.dff"), minio.StatObjectOptions{})
+				_, err := db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_model.dff"))
 				if err == nil {
 					panic(err)
 				}
 
-				_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_texture.txd"), minio.StatObjectOptions{})
+				_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.objectID), "test_texture.txd"))
 				if err == nil {
 					panic(err)
 				}

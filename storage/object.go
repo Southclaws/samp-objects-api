@@ -54,8 +54,7 @@ func (db Database) PutObjectFile(objectID types.ObjectID, filename string, files
 		db.StoreBucket,
 		filepath.Join(string(objectID), filename),
 		reader,
-		filesize,
-		minio.PutObjectOptions{})
+		"application/octet-stream")
 
 	return
 }
@@ -76,8 +75,7 @@ func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (er
 
 	storeObject, err := db.store.GetObject(
 		db.StoreBucket,
-		filepath.Join(string(objectID), string(tmpObject.Images[0])),
-		minio.GetObjectOptions{})
+		filepath.Join(string(objectID), string(tmpObject.Images[0])))
 	if err != nil {
 		err = errors.Wrap(err, "failed to get file from object store")
 		return
@@ -97,8 +95,7 @@ func (db Database) GetObjectFile(objectID types.ObjectID, fileName types.File, w
 
 	storeObject, err := db.store.GetObject(
 		db.StoreBucket,
-		filepath.Join(string(objectID), string(fileName)),
-		minio.GetObjectOptions{})
+		filepath.Join(string(objectID), string(fileName)))
 	if err != nil {
 		err = errors.Wrap(err, "failed to get file from object store")
 		return
@@ -182,7 +179,7 @@ func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.Ob
 		ext := filepath.Ext(info.Key)
 		if ext == ".dff" {
 			objectDFF := types.ObjectDFF{}
-			file, err = db.store.GetObject(db.StoreBucket, info.Key, minio.GetObjectOptions{})
+			file, err = db.store.GetObject(db.StoreBucket, info.Key)
 			if err != nil {
 				err = errors.Wrap(err, "failed to get object info")
 				return
@@ -207,7 +204,7 @@ func (db Database) GetObjectFiles(objectID types.ObjectID) (objectFiles types.Ob
 			objectFiles.Models = append(objectFiles.Models, objectDFF)
 		} else if ext == ".txd" {
 			objectTXD := types.ObjectTXD{}
-			file, err = db.store.GetObject(db.StoreBucket, info.Key, minio.GetObjectOptions{})
+			file, err = db.store.GetObject(db.StoreBucket, info.Key)
 			if err != nil {
 				err = errors.Wrap(err, "failed to get object info")
 				return

@@ -93,6 +93,10 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := app.Storage.GetUserByName(authRequest.Username)
 	if err != nil {
+		if err.Error() == "not found" {
+			WriteResponseError(w, http.StatusUnauthorized, errors.New("username not found"))
+			return
+		}
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to lookup user by name"))
 		return
 	}

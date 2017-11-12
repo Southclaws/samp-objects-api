@@ -85,7 +85,7 @@ run-prod:
 		-e BIND=localhost:8080 \
 		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \
-		-e MONGO_HOST=localhost \
+		-e MONGO_HOST=mongodb \
 		-e MONGO_PORT=27017 \
 		-e MONGO_NAME=sampobjects \
 		-e MONGO_PASS=$(MONGO_PASS) \

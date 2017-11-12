@@ -2,6 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"image"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -15,6 +20,7 @@ import (
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/nfnt/resize"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -137,9 +143,9 @@ func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
 
 // ObjectUpload is the file upload endpoint
 func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
-	resp := &UploadResponse{}
+	resp := UploadResponse{}
 	defer func() {
-		payload, err := json.Marshal(resp)
+		payload, err := json.Marshal(&resp)
 		if err != nil {
 			WriteResponseError(w, http.StatusBadRequest, err)
 			return
@@ -208,28 +214,98 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				logger.Debug("received actual file",
-					zap.String("filename", filename))
-
-				err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
-				if err != nil {
-					logger.Error("failed to write object file to block store",
-						zap.Error(err))
-					resp.Error = err.Error()
-					return
-				}
+				logger.Debug("uploading file...", zap.String("filename", filename))
 
 				switch filepath.Ext(filename) {
 				case ".dff":
 					object.Models = append(object.Models, types.File(filename))
+
+					err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
+					if err != nil {
+						logger.Error("failed to write object file to block store",
+							zap.Error(err))
+						resp.Error = err.Error()
+						return
+					}
 				case ".txd":
 					object.Textures = append(object.Textures, types.File(filename))
+
+					err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
+					if err != nil {
+						logger.Error("failed to write object file to block store",
+							zap.Error(err))
+						resp.Error = err.Error()
+						return
+					}
 				default:
+					if len(object.Images) == 0 {
+						img, _, err := image.Decode(p)
+						if err != nil {
+							logger.Error("unsupported image format",
+								zap.Error(err))
+							resp.Error = err.Error()
+							return
+						}
+
+						reader, writer := io.Pipe()
+
+						go func() {
+							img = resize.Thumbnail(200, 200, img, resize.NearestNeighbor)
+							err = jpeg.Encode(writer, img, &jpeg.Options{64})
+							if err != nil {
+								logger.Error("failed to encode thumbnail",
+									zap.Error(err))
+								resp.Error = err.Error()
+								err = writer.CloseWithError(err)
+								if err != nil {
+									logger.Error("failed to close pipe",
+										zap.Error(err))
+									return
+								}
+								return
+							}
+							err = writer.Close()
+							if err != nil {
+								logger.Error("failed to close writer",
+									zap.Error(err))
+								resp.Error = err.Error()
+								return
+							}
+						}()
+
+						err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), -1, reader)
+						if err != nil {
+							logger.Error("failed to write object file to block store",
+								zap.Error(err))
+							resp.Error = err.Error()
+							err = reader.CloseWithError(err)
+							if err != nil {
+								logger.Error("failed to close pipe",
+									zap.Error(err))
+								return
+							}
+							return
+						}
+						err = reader.Close()
+						if err != nil {
+							logger.Error("failed to close reader",
+								zap.Error(err))
+							resp.Error = err.Error()
+							return
+						}
+					} else {
+						err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
+						if err != nil {
+							logger.Error("failed to write object file to block store",
+								zap.Error(err))
+							resp.Error = err.Error()
+							return
+						}
+					}
 					object.Images = append(object.Images, types.File(filename))
 				}
 
-				logger.Debug("uploaded file successfully",
-					zap.Any("object", object))
+				logger.Debug("uploaded file successfully", zap.String("filename", filename))
 
 				uploadedFile = true
 			} else {
@@ -240,8 +316,6 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 					resp.Error = err.Error()
 					return
 				}
-				logger.Debug("received upload metadata",
-					zap.ByteString("data", raw))
 
 				size, err = strconv.Atoi(string(raw))
 				if err != nil {

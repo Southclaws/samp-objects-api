@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"io"
 	"path/filepath"
 	"strings"
@@ -20,35 +19,9 @@ var (
 )
 
 // CreateObject creates a new object in the database
-func (db Database) CreateObject(object types.Object, objectData types.ObjectFiles) (err error) {
+func (db Database) CreateObject(object types.Object) (err error) {
 	if err = object.Validate(); err != nil {
 		return
-	}
-
-	for _, model := range objectData.Models {
-		objectReader := bytes.NewReader(model.Data)
-		_, err = db.store.PutObject(
-			db.StoreBucket,
-			filepath.Join(string(object.ID), model.Name),
-			objectReader,
-			int64(-1),
-			minio.PutObjectOptions{})
-		if err != nil {
-			return
-		}
-	}
-
-	for _, texture := range objectData.Textures {
-		objectReader := bytes.NewReader(texture.Data)
-		_, err = db.store.PutObject(
-			db.StoreBucket,
-			filepath.Join(string(object.ID), texture.Name),
-			objectReader,
-			int64(-1),
-			minio.PutObjectOptions{})
-		if err != nil {
-			return
-		}
 	}
 
 	err = db.objects.Insert(object)
@@ -68,6 +41,22 @@ func (db Database) UpdateObject(object types.Object) (err error) {
 	}
 
 	err = db.objects.Update(bson.M{"id": object.ID}, object)
+	return
+}
+
+// PutObjectFile uploads a file to an object's folder in S3 from an io.Reader
+func (db Database) PutObjectFile(objectID types.ObjectID, filename string, filesize int64, reader io.Reader) (err error) {
+	if err = objectID.Validate(); err != nil {
+		return
+	}
+
+	_, err = db.store.PutObject(
+		db.StoreBucket,
+		filepath.Join(string(objectID), filename),
+		reader,
+		filesize,
+		minio.PutObjectOptions{})
+
 	return
 }
 

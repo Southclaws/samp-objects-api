@@ -18,8 +18,8 @@ type ObjectCategory string
 // ObjectTag represents a search tag for an object
 type ObjectTag string
 
-// Hash represents an object's content hash
-type Hash string
+// File represents an object's content filename
+type File string
 
 // Object represents an object that a object has uploaded, it includes a hash of the file contents
 // and details such as name and owner.
@@ -30,9 +30,9 @@ type Object struct {
 	Description ObjectDescription `json:"description"`
 	Category    ObjectCategory    `json:"category"`
 	Tags        []ObjectTag       `json:"tags"`
-	ImageHash   Hash              `json:"image_hash"`
-	ModelHash   Hash              `json:"model_hash"`
-	TextureHash Hash              `json:"texture_hash"`
+	Images      []File            `json:"images"`
+	Models      []File            `json:"models"`
+	Textures    []File            `json:"textures"`
 }
 
 // ObjectFile represents a single file the user uploaded
@@ -80,14 +80,11 @@ func (object Object) Validate() (err error) {
 	if object.Category == "" {
 		return errors.New("category is empty")
 	}
-	if object.ImageHash == "" {
-		return errors.New("image hash is empty")
+	if len(object.Models) == 0 {
+		return errors.New("no models in objecet")
 	}
-	if object.ModelHash == "" {
-		return errors.New("model hash is empty")
-	}
-	if object.TextureHash == "" {
-		return errors.New("texture hash is empty")
+	if len(object.Textures) == 0 {
+		return errors.New("no textures in object")
 	}
 	return
 }

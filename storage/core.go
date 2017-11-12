@@ -1,10 +1,10 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/minio/minio-go"
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 )
 

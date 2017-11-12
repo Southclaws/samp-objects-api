@@ -77,6 +77,7 @@ run:
 		southclaws/samp-objects:$(VERSION)
 
 run-prod:
+	-docker stop samp-objects-api
 	-docker rm samp-objects-api
 	docker run \
 		--name samp-objects-api \

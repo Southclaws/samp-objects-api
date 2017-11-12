@@ -83,13 +83,13 @@ func (app App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ObjectImages handles requests for object images by name
-func (app App) ObjectImages(w http.ResponseWriter, r *http.Request) {
+// ObjectFiles handles requests for object files by name
+func (app App) ObjectFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectID := types.ObjectID(vars["objectid"])
-	imageName := types.File(vars["imageName"])
+	fileName := types.File(vars["fileName"])
 
-	err := app.Storage.GetObjectImage(objectID, imageName, w)
+	err := app.Storage.GetObjectFile(objectID, fileName, w)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
 		return

@@ -88,8 +88,8 @@ func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (er
 	return
 }
 
-// GetObjectImage writes the specified image file from an object to the given writer
-func (db Database) GetObjectImage(objectID types.ObjectID, imageName types.File, writer io.Writer) (err error) {
+// GetObjectFile writes the specified image file from an object to the given writer
+func (db Database) GetObjectFile(objectID types.ObjectID, fileName types.File, writer io.Writer) (err error) {
 	if err = objectID.Validate(); err != nil {
 		err = errors.Wrap(err, "invalid object ID format")
 		return
@@ -97,7 +97,7 @@ func (db Database) GetObjectImage(objectID types.ObjectID, imageName types.File,
 
 	storeObject, err := db.store.GetObject(
 		db.StoreBucket,
-		filepath.Join(string(objectID), string(imageName)),
+		filepath.Join(string(objectID), string(fileName)),
 		minio.GetObjectOptions{})
 	if err != nil {
 		err = errors.Wrap(err, "failed to get file from object store")

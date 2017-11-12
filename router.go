@@ -80,9 +80,17 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "images",
 			Methods:       []string{"OPTIONS", "GET"},
-			Path:          "/v0/images/{objectid}/{imageName}",
+			Path:          "/v0/images/{objectid}/{fileName}",
 			Authenticated: false,
-			handler:       app.ObjectImages,
+			handler:       app.ObjectFiles,
+		},
+		// /files/
+		{
+			Name:          "files",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/files/{objectid}/{fileName}",
+			Authenticated: false,
+			handler:       app.ObjectFiles,
 		},
 		// /object/
 		{

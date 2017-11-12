@@ -27,9 +27,31 @@ type UploadResponse struct {
 	Object  types.Object `json:"object"`
 }
 
-// Objects handles the /objects/:object endpoint, it includes actions for listing all objects,
-// viewing info for a specific object and uploading a new object.
+// ObjectsList handles the /objects endpoint, it returns a query result of objects
+func (app App) ObjectsList(w http.ResponseWriter, r *http.Request) {
+	objects, err := app.Storage.GetObjects()
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	payload, err := json.Marshal(objects)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write(payload)
+}
+
+// Objects handles the /objects/:objectid endpoint, it returns the metadata for a specific object
 func (app App) Objects(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ObjectImage handles requests for object image thumbails
+func (app App) ObjectImage(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // PrepareObject receives a types.Object and caches it while responding with the generated unique ID
@@ -235,19 +257,4 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 
 	resp.Object = object
 	resp.Success = true
-}
-
-// get object
-func (app App) getObject(w http.ResponseWriter, r *http.Request) {
-	// objectID := types.ObjectID(vars["objectid"])
-	// if err := objectID.Validate(); err != nil {
-	// 	// todo: error
-	// 	return
-	// }
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// update object
-func (app App) updateObject(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
 }

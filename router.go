@@ -60,7 +60,7 @@ func (app App) routes() (routes []Route) {
 			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/objects",
 			Authenticated: false,
-			handler:       app.Objects,
+			handler:       app.ObjectsList,
 		},
 		{
 			Name:          "objects",
@@ -69,6 +69,15 @@ func (app App) routes() (routes []Route) {
 			Authenticated: false,
 			handler:       app.Objects,
 		},
+		// /images/
+		{
+			Name:          "image",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/images/{objectid}",
+			Authenticated: true,
+			handler:       app.ObjectImage,
+		},
+		// /object/
 		{
 			Name:          "object",
 			Methods:       []string{"OPTIONS", "POST"},
@@ -76,6 +85,7 @@ func (app App) routes() (routes []Route) {
 			Authenticated: true,
 			handler:       app.PrepareObject,
 		},
+		// /upload/
 		{
 			Name:          "upload",
 			Methods:       []string{"OPTIONS", "POST"},

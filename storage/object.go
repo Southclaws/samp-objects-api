@@ -83,6 +83,12 @@ func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
 	return
 }
 
+// GetObjects returns a list of objects based on query parameters
+func (db Database) GetObjects( /*todo: query params*/ ) (objects []types.Object, err error) {
+	err = db.objects.Find(bson.M{}).All(&objects)
+	return
+}
+
 // GetObject returns a types.Object by their unique ID
 func (db Database) GetObject(objectID types.ObjectID) (object types.Object, err error) {
 	err = db.objects.Find(bson.M{"id": objectID}).One(&object)

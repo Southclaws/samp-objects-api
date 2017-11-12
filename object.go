@@ -181,8 +181,6 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debug("received upload request", zap.String("objectID", string(objectID)))
-
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		logger.Error("failed to parse media type from Content-Type header",
@@ -213,8 +211,6 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 					resp.Error = err.Error()
 					return
 				}
-
-				logger.Debug("uploading file...", zap.String("filename", filename))
 
 				switch filepath.Ext(filename) {
 				case ".dff":
@@ -304,8 +300,6 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 					}
 					object.Images = append(object.Images, types.File(filename))
 				}
-
-				logger.Debug("uploaded file successfully", zap.String("filename", filename))
 
 				uploadedFile = true
 			} else {

@@ -60,6 +60,34 @@ func (db Database) PutObjectFile(objectID types.ObjectID, filename string, files
 	return
 }
 
+// GetObjectThumb writes the first image from an object to the given writer
+func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (err error) {
+	if err = objectID.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid object ID format")
+		return
+	}
+
+	tmpObject := types.Object{}
+	err = db.objects.Find(bson.M{"id": objectID}).One(&tmpObject)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to lookup object %s", string(objectID))
+		return
+	}
+
+	storeObject, err := db.store.GetObject(
+		db.StoreBucket,
+		filepath.Join(string(objectID), string(tmpObject.Images[0])),
+		minio.GetObjectOptions{})
+	if err != nil {
+		err = errors.Wrap(err, "failed to get file from object store")
+		return
+	}
+
+	_, err = io.Copy(writer, storeObject)
+
+	return
+}
+
 // DeleteObject deletes a object
 func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
 	if err = objectID.Validate(); err != nil {
@@ -179,7 +207,7 @@ func (db Database) ObjectExists(objectID types.ObjectID) (exists bool, err error
 
 // UserObjectExists checks if an object exists by their name in a user's account
 func (db Database) UserObjectExists(object types.Object) (exists bool, err error) {
-	count, err := db.objects.Find(bson.M{"owner": object.Owner, "name": object.Name}).Count()
+	count, err := db.objects.Find(bson.M{"ownerid": object.OwnerID, "name": object.Name}).Count()
 	exists = count > 0
 	return
 }

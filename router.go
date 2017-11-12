@@ -74,7 +74,7 @@ func (app App) routes() (routes []Route) {
 			Name:          "image",
 			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/images/{objectid}",
-			Authenticated: true,
+			Authenticated: false,
 			handler:       app.ObjectImage,
 		},
 		// /object/

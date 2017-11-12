@@ -25,7 +25,8 @@ type File string
 // and details such as name and owner.
 type Object struct {
 	ID          ObjectID          `json:"id"`
-	Owner       UserID            `json:"owner"`
+	OwnerID     UserID            `json:"owner_id"`
+	OwnerName   UserName          `json:"owner_name"`
 	Name        ObjectName        `json:"name"`
 	Description ObjectDescription `json:"description"`
 	Category    ObjectCategory    `json:"category"`
@@ -63,8 +64,11 @@ func (object Object) ValidatePartial() (err error) {
 	if err = object.ID.Validate(); err != nil {
 		return
 	}
-	if object.Owner == "" {
-		return errors.New("owner is empty")
+	if object.OwnerID == "" {
+		return errors.New("owner id is empty")
+	}
+	if object.OwnerName == "" {
+		return errors.New("owner name is empty")
 	}
 	if object.Name == "" {
 		return errors.New("name is empty")
@@ -79,6 +83,9 @@ func (object Object) Validate() (err error) {
 	}
 	if object.Category == "" {
 		return errors.New("category is empty")
+	}
+	if len(object.Images) == 0 {
+		return errors.New("no images in objecet")
 	}
 	if len(object.Models) == 0 {
 		return errors.New("no models in objecet")

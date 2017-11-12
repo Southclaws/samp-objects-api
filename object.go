@@ -51,7 +51,19 @@ func (app App) Objects(w http.ResponseWriter, r *http.Request) {
 
 // ObjectImage handles requests for object image thumbails
 func (app App) ObjectImage(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	vars := mux.Vars(r)
+	rawID, ok := vars["objectid"]
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.New("no object ID specified"))
+		return
+	}
+	objectID := types.ObjectID(rawID)
+
+	err := app.Storage.GetObjectThumb(objectID, w)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
+		return
+	}
 }
 
 // PrepareObject receives a types.Object and caches it while responding with the generated unique ID
@@ -89,7 +101,14 @@ func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	object.Owner = userID
+	user, err := app.Storage.GetUser(userID)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.New("failed to get user details by ID"))
+		return
+	}
+
+	object.OwnerID = user.ID
+	object.OwnerName = user.Name
 
 	exists, err := app.Storage.UserObjectExists(object)
 	if err != nil {
@@ -233,7 +252,7 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	app.Pending.Set(string(object.ID), object, time.Minute*30)
 
-	if uploadedFile && len(object.Models) > 0 && len(object.Textures) > 0 {
+	if uploadedFile && len(object.Images) > 0 && len(object.Models) > 0 && len(object.Textures) > 0 {
 		_, hit = app.Pending.Get(string(object.ID) + "-PENDING")
 		if hit { // object pending creation in DB
 			err = app.Storage.CreateObject(object)

@@ -77,12 +77,13 @@ run:
 		southclaws/samp-objects:$(VERSION)
 
 run-prod:
-	-docker rm samp-objects-test
+	-docker rm samp-objects-api
 	docker run \
-		--name samp-objects \
+		--name samp-objects-api \
 		--restart on-failure \
 		-d \
-		-e BIND=localhost:8080 \
+		-p 80:7791 \
+		-e BIND=0.0.0.0:80 \
 		-e DOMAIN=localhost \
 		-e MONGO_USER=sampobjects \
 		-e MONGO_HOST=mongodb \
@@ -98,7 +99,7 @@ run-prod:
 		-e STORE_BUCKET=samp-objects \
 		-e STORE_LOCATION=$(STORE_LOCATION) \
 		southclaws/samp-objects:$(VERSION)
-	docker network connect samp-objects samp-objects
+	docker network connect samp-objects samp-objects-api
 
 enter:
 	docker run -it --entrypoint=bash southclaws/samp-objects:$(VERSION)

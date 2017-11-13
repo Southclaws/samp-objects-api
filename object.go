@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"image"
 	_ "image/gif"
-	_ "image/jpeg"
+	"image/jpeg"
 	_ "image/png"
 	"io"
 	"io/ioutil"
@@ -74,7 +75,11 @@ func (app App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Storage.GetObjectThumb(objectID, w)
 	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
+		err = jpeg.Encode(w, image.NewGray(image.Rect(0, 0, 200, 200)), &jpeg.Options{50})
+		if err != nil {
+			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
+			return
+		}
 		return
 	}
 }
@@ -319,19 +324,50 @@ func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (e
 		return
 	}
 
-	err = app.Storage.PutObjectFile(objectID, filename, p)
-	if err != nil {
-		err = errors.Wrap(err, "failed to write object to store")
-		return
-	}
-
 	filetype := "image"
 
+	// todo: use mimetypes/first bytes to determine file type
 	switch filepath.Ext(filename) {
 	case ".dff":
 		filetype = "model"
 	case ".txd":
 		filetype = "texture"
+	}
+
+	r, w := io.Pipe()
+
+	go func() {
+		if filetype == "image" {
+			img, format, err := image.Decode(p)
+			if err != nil {
+				w.CloseWithError(errors.Wrapf(err, "failed to decode image file of format '%s'", format))
+			}
+
+			err = jpeg.Encode(w, img, &jpeg.Options{64})
+			if err != nil {
+				w.CloseWithError(errors.Wrap(err, "failed to re-encode image as JPEG"))
+			}
+		} else {
+			_, err := io.Copy(w, p)
+			if err != nil {
+				w.CloseWithError(err)
+			}
+		}
+		err = w.Close()
+		if err != nil {
+			logger.Fatal("failed to close upload cache image writer",
+				zap.String("objectid", string(objectID)),
+				zap.String("filename", filename))
+		}
+	}()
+
+	err = app.Storage.PutObjectFile(objectID, filename, r)
+	if err != nil {
+		return errors.Wrap(err, "failed to write object to store")
+	}
+	err = r.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close reader")
 	}
 
 	ch <- types.ObjectFile{

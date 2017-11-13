@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"image/jpeg"
 	"io"
 	"path/filepath"
 	"strings"
 
+	"github.com/nfnt/resize"
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 
@@ -80,7 +82,11 @@ func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (er
 		return
 	}
 
-	_, err = io.Copy(writer, storeObject)
+	img, err := jpeg.Decode(storeObject)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode stored image")
+	}
+	err = jpeg.Encode(writer, resize.Thumbnail(200, 200, img, resize.Bilinear), &jpeg.Options{64})
 
 	return
 }

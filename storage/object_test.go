@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -266,53 +265,6 @@ func TestDatabase_GetObject(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotObject, tt.wantObject) {
 				t.Errorf("Database.GetObject() = %v, want %v", gotObject, tt.wantObject)
-			}
-		})
-	}
-}
-
-// At this point the following objects are in the database:
-// types.Object{ID: "00000000-0000-0000-0000-100000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag2"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-200000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object2",Description: "object2",Category: "category2",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-
-func TestDatabase_GetObjectFiles(t *testing.T) {
-	type args struct {
-		objectID types.ObjectID
-	}
-
-	model, err := ioutil.ReadFile("./tests/test_model.dff")
-	if err != nil {
-		panic(err)
-	}
-	texture, err := ioutil.ReadFile("./tests/test_texture.txd")
-	if err != nil {
-		panic(err)
-	}
-
-	tests := []struct {
-		name            string
-		args            args
-		wantObjectFiles types.ObjectFiles
-		wantErr         bool
-	}{
-		{"v object1", args{"00000000-0000-0000-0000-100000000000"}, types.ObjectFiles{
-			Models: []types.ObjectDFF{
-				{Name: "test_model.dff", Data: model},
-			},
-			Textures: []types.ObjectTXD{
-				{Name: "test_texture.txd", Data: texture},
-			},
-		}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotObjectFiles, err := db.GetObjectFiles(tt.args.objectID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Database.GetObjectFiles() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(gotObjectFiles, tt.wantObjectFiles) {
-				t.Errorf("Database.GetObjectFiles() = %v, want %v", gotObjectFiles, tt.wantObjectFiles)
 			}
 		})
 	}

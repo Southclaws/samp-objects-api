@@ -55,9 +55,9 @@ func (app App) Register(w http.ResponseWriter, r *http.Request) {
 	err = app.Storage.CreateUser(user)
 	if err != nil {
 		if err == storage.ErrUserNameAlreadyExists {
-			WriteResponseError(w, http.StatusConflict, errors.Wrap(err, "username already registered"))
+			WriteResponse(w, http.StatusConflict, "username already registered")
 		} else if err == storage.ErrUserEmailAlreadyExists {
-			WriteResponseError(w, http.StatusTeapot, errors.Wrap(err, "email already registered"))
+			WriteResponse(w, http.StatusTeapot, "email already registered")
 		} else {
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to create new user"))
 		}
@@ -94,7 +94,7 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := app.Storage.GetUserByName(authRequest.Username)
 	if err != nil {
 		if err.Error() == "not found" {
-			WriteResponseError(w, http.StatusUnauthorized, errors.New("username not found"))
+			WriteResponse(w, http.StatusUnauthorized, "username not found")
 			return
 		}
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to lookup user by name"))

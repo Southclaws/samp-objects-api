@@ -39,7 +39,7 @@ type Object struct {
 // ObjectFile represents a single file the user uploaded
 type ObjectFile struct {
 	Name string `json:"name"`
-	Data []byte `json:"data"`
+	Type string `json:"type"`
 }
 
 // ObjectDFF represents a model file

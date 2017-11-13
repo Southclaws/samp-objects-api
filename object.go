@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"image"
 	_ "image/gif"
-	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -20,7 +18,6 @@ import (
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/nfnt/resize"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -28,9 +25,8 @@ import (
 // UploadResponse is the response returned when a client successfully uploads a file
 // this is for FineUploader
 type UploadResponse struct {
-	Success bool         `json:"success"`
-	Error   string       `json:"error"`
-	Object  types.Object `json:"object"`
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
 }
 
 // ObjectsList handles the /objects endpoint, it returns a query result of objects
@@ -151,10 +147,7 @@ func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
 
 	object.ID = types.ObjectID(uuid.New().String())
 
-	// object ID stores the object metadata
-	app.Pending.Set(string(object.ID), object, time.Minute*30)
-	// object ID + PENDING indicates whether or not the object has been created in the database yet
-	app.Pending.Set(string(object.ID)+"-PENDING", false, time.Minute*30)
+	app.UploadWaiter(object)
 
 	payload, err = json.Marshal(object)
 	if err != nil {
@@ -187,23 +180,8 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objRaw, hit := app.Pending.Get(string(objectID))
-	if !hit {
-		resp.Error = "no cached object metadata by that ID"
-		return
-	}
-	object, ok := objRaw.(types.Object)
-	if !ok {
-		resp.Error = "failed to decode cached object ID, please try again"
-		app.Pending.Delete(string(objectID))
-		return
-	}
-
-	if object.ID != objectID {
-		resp.Error = "request object ID and cached object ID do not match, please try again"
-		app.Pending.Delete(string(objectID))
-		return
-	}
+	logger.Debug("received upload request",
+		zap.Any("objectid", objectID))
 
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -212,7 +190,6 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 		resp.Error = err.Error()
 		return
 	}
-	uploadedFile := false
 	if strings.HasPrefix(mediaType, "multipart/") {
 		size := 0
 		mr := multipart.NewReader(r.Body, params["boundary"])
@@ -236,96 +213,18 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				switch filepath.Ext(filename) {
-				case ".dff":
-					object.Models = append(object.Models, types.File(filename))
-
-					err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
-					if err != nil {
-						logger.Error("failed to write object file to block store",
-							zap.Error(err))
-						resp.Error = err.Error()
-						return
-					}
-				case ".txd":
-					object.Textures = append(object.Textures, types.File(filename))
-
-					err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
-					if err != nil {
-						logger.Error("failed to write object file to block store",
-							zap.Error(err))
-						resp.Error = err.Error()
-						return
-					}
-				default:
-					if len(object.Images) == 0 {
-						img, _, err := image.Decode(p)
-						if err != nil {
-							logger.Error("unsupported image format",
-								zap.Error(err))
-							resp.Error = err.Error()
-							return
-						}
-
-						reader, writer := io.Pipe()
-
-						go func() {
-							img = resize.Thumbnail(200, 200, img, resize.NearestNeighbor)
-							err = jpeg.Encode(writer, img, &jpeg.Options{64})
-							if err != nil {
-								logger.Error("failed to encode thumbnail",
-									zap.Error(err))
-								resp.Error = err.Error()
-								err = writer.CloseWithError(err)
-								if err != nil {
-									logger.Error("failed to close pipe",
-										zap.Error(err))
-									return
-								}
-								return
-							}
-							err = writer.Close()
-							if err != nil {
-								logger.Error("failed to close writer",
-									zap.Error(err))
-								resp.Error = err.Error()
-								return
-							}
-						}()
-
-						err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), -1, reader)
-						if err != nil {
-							logger.Error("failed to write object file to block store",
-								zap.Error(err))
-							resp.Error = err.Error()
-							err = reader.CloseWithError(err)
-							if err != nil {
-								logger.Error("failed to close pipe",
-									zap.Error(err))
-								return
-							}
-							return
-						}
-						err = reader.Close()
-						if err != nil {
-							logger.Error("failed to close reader",
-								zap.Error(err))
-							resp.Error = err.Error()
-							return
-						}
-					} else {
-						err = app.Storage.PutObjectFile(objectID, filepath.Base(filename), int64(size), p)
-						if err != nil {
-							logger.Error("failed to write object file to block store",
-								zap.Error(err))
-							resp.Error = err.Error()
-							return
-						}
-					}
-					object.Images = append(object.Images, types.File(filename))
+				err = app.AddFile(objectID, filename, p)
+				if err != nil {
+					logger.Error("failed to update object metadata in databasea",
+						zap.Error(err))
+					resp.Error = err.Error()
+					return
 				}
 
-				uploadedFile = true
+				logger.Debug("completed upload",
+					zap.Any("objectid", objectID))
+
+				resp.Success = true
 			} else {
 				raw, err := ioutil.ReadAll(p)
 				if err != nil {
@@ -342,30 +241,60 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	app.Pending.Set(string(object.ID), object, time.Minute*30)
+}
 
-	if uploadedFile && len(object.Images) > 0 && len(object.Models) > 0 && len(object.Textures) > 0 {
-		_, hit = app.Pending.Get(string(object.ID) + "-PENDING")
-		if hit { // object pending creation in DB
-			err = app.Storage.CreateObject(object)
-			if err != nil {
-				logger.Error("failed to create object metadata in database",
-					zap.Error(err))
-				resp.Error = err.Error()
-				return
-			}
-			app.Pending.Delete(string(object.ID) + "-PENDING")
-		} else { // object is already in DB, update it
-			err = app.Storage.UpdateObject(object)
-			if err != nil {
-				logger.Error("failed to update object metadata in databasea",
-					zap.Error(err))
-				resp.Error = err.Error()
+// UploadWaiter is called when an upload is prepared and awaits files from ObjectUpload
+func (app App) UploadWaiter(object types.Object) {
+	app.Uploads[object.ID] = make(chan types.ObjectFile, 16)
+
+	go func() {
+		timeout := time.NewTimer(time.Hour)
+
+		for {
+			select {
+			case file := <-app.Uploads[object.ID]:
+				logger.Debug("waiter received file",
+					zap.String("name", string(file.Name)),
+					zap.String("type", string(file.Type)))
+				//
+			case <-timeout.C:
+				// cache dropped
 				return
 			}
 		}
+
+		err := app.Storage.CreateObject(object)
+		if err != nil {
+			logger.Error("failed to create object metadata in database",
+				zap.Error(err))
+			return
+		}
+
+		delete(app.Uploads, object.ID)
+	}()
+}
+
+// AddFile adds a file from an upload to a pending waiter and writes the file to the file store
+func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (err error) {
+	err = app.Storage.PutObjectFile(objectID, filename, p)
+	if err != nil {
+		err = errors.Wrap(err, "failed to write object to store")
+		return
 	}
 
-	resp.Object = object
-	resp.Success = true
+	filetype := "image"
+
+	switch filepath.Ext(filename) {
+	case ".dff":
+		filetype = "model"
+	case ".txd":
+		filetype = "texture"
+	}
+
+	app.Uploads[objectID] <- types.ObjectFile{
+		Name: filename,
+		Type: filetype,
+	}
+
+	return
 }

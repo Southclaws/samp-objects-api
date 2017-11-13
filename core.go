@@ -3,16 +3,14 @@ package main
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
 
 	"bitbucket.org/Southclaws/samp-objects-api/storage"
+	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
 // App stores global state for routing and coordination
@@ -23,7 +21,7 @@ type App struct {
 	router   *mux.Router
 	Storage  *storage.Database
 	Sessions *sessions.CookieStore
-	Pending  *cache.Cache
+	Uploads  map[types.ObjectID]chan types.ObjectFile
 }
 
 const (
@@ -62,10 +60,8 @@ func Initialise(config Config) *App {
 	app.SetupAuth()
 
 	// Set up session manager
-	app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
-
-	// Set up pending uploads cache
-	app.Pending = cache.New(cache.DefaultExpiration, time.Hour)
+	// app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
+	app.Sessions = sessions.NewCookieStore([]byte(`securecookie.GenerateRandomKey(64)`))
 
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)

@@ -93,50 +93,48 @@ func TestDatabase_CreateObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// // read the test files into memory
-			// model, err := ioutil.ReadFile("./tests/test_model.dff")
-			// if err != nil {
-			// 	panic(err)
-			// }
-			// texture, err := ioutil.ReadFile("./tests/test_texture.txd")
-			// if err != nil {
-			// 	panic(err)
-			// }
-
-			// objectData := types.ObjectFiles{
-			// 	Models: []types.ObjectDFF{
-			// 		{Name: "test_model.dff", Data: model},
-			// 	},
-			// 	Textures: []types.ObjectTXD{
-			// 		{Name: "test_texture.txd", Data: texture},
-			// 	},
-			// }
-
-			// do the test
 			if err := db.CreateObject(tt.args.object); (err != nil) != tt.wantErr {
 				t.Errorf("Database.CreateObject() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
-			// if !tt.wantErr {
-			// 	// ensure files are present in S3
-			// 	_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.object.ID), "test_model.dff"), minio.StatObjectOptions{})
-			// 	if err != nil {
-			// 		panic(err)
-			// 	}
-
-			// 	_, err = db.store.StatObject(db.StoreBucket, filepath.Join("/", string(tt.args.object.ID), "test_texture.txd"), minio.StatObjectOptions{})
-			// 	if err != nil {
-			// 		panic(err)
-			// 	}
-			// }
 		})
 	}
 }
 
-// At this point the following objects are in the database:
-// types.Object{ID: "00000000-0000-0000-0000-100000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-200000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object2",Description: "object2",Category: "category1",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-300000000000",OwnerID: types.UserID("00000002-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
+/* At this point the following objects are in the database:
+types.Object{
+	ID: "00000000-0000-0000-0000-100000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+types.Object{
+	ID: "00000000-0000-0000-0000-200000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object2",
+	Description: "object2",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+types.Object{
+	ID: "00000000-0000-0000-0000-300000000000",
+	OwnerID: types.UserID("00000002-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+*/
 
 func TestDatabase_UpdateObject(t *testing.T) {
 	type args struct {
@@ -201,10 +199,41 @@ func TestDatabase_UpdateObject(t *testing.T) {
 	}
 }
 
-// At this point the following objects are in the database:
-// types.Object{ID: "00000000-0000-0000-0000-100000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag2"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-200000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object2",Description: "object2",Category: "category2",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-300000000000",OwnerID: types.UserID("00000002-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag1", "tag2"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
+/* At this point the following objects are in the database:
+types.Object{
+	ID: "00000000-0000-0000-0000-100000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag2"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+types.Object{
+	ID: "00000000-0000-0000-0000-200000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object2",
+	Description: "object2",
+	Category: "category2",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+types.Object{
+	ID: "00000000-0000-0000-0000-300000000000",
+	OwnerID: types.UserID("00000002-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag1",
+		 "tag2"},ImageHash:
+		 "123",ModelHash:
+		 "456",TextureHash: "789",
+		}
+*/
 
 func TestDatabase_DeleteObject(t *testing.T) {
 	type args struct {
@@ -239,9 +268,30 @@ func TestDatabase_DeleteObject(t *testing.T) {
 	}
 }
 
-// At this point the following objects are in the database:
-// types.Object{ID: "00000000-0000-0000-0000-100000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag2"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-200000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object2",Description: "object2",Category: "category2",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
+/* At this point the following objects are in the database:
+types.Object{
+	ID: "00000000-0000-0000-0000-100000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag2"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+},
+types.Object{
+	ID: "00000000-0000-0000-0000-200000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object2",
+	Description: "object2",
+	Category: "category2",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+},
+*/
 
 func TestDatabase_GetObject(t *testing.T) {
 	type args struct {
@@ -253,8 +303,20 @@ func TestDatabase_GetObject(t *testing.T) {
 		wantObject types.Object
 		wantErr    bool
 	}{
-		{"v owner1 object1", args{types.ObjectID("00000000-0000-0000-0000-100000000000")}, types.Object{ID: "00000000-0000-0000-0000-100000000000", OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"), Name: "object1", Description: "object1", Category: "category1", Tags: []types.ObjectTag{"tag2"}, Images: []types.File{"123"}, Models: []types.File{"456"}, Textures: []types.File{"789"}}, false},
-		{"i no exist", args{types.ObjectID("00000000-0000-0000-0000-010000000000")}, types.Object{}, true},
+		{"v owner1 object1", args{types.ObjectID("00000000-0000-0000-0000-100000000000")}, types.Object{
+			ID:          "00000000-0000-0000-0000-100000000000",
+			OwnerID:     types.UserID("00000001-0000-0000-0000-000000000000"),
+			OwnerName:   types.UserName("owner1"),
+			Name:        "object1",
+			Description: "object1",
+			Category:    "category1",
+			Tags:        []types.ObjectTag{"tag2"},
+			Images:      []types.File{"123"},
+			Models:      []types.File{"456"},
+			Textures:    []types.File{"789"}}, false},
+		{"i no exist", args{
+			types.ObjectID("00000000-0000-0000-0000-010000000000")},
+			types.Object{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -270,9 +332,30 @@ func TestDatabase_GetObject(t *testing.T) {
 	}
 }
 
-// At this point the following objects are in the database:
-// types.Object{ID: "00000000-0000-0000-0000-100000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object1",Description: "object1",Category: "category1",Tags: []types.ObjectTag{"tag2"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
-// types.Object{ID: "00000000-0000-0000-0000-200000000000",OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),Name: "object2",Description: "object2",Category: "category2",Tags: []types.ObjectTag{"tag1"},ImageHash: "123",ModelHash: "456",TextureHash: "789",}
+/* At this point the following objects are in the database:
+types.Object{
+	ID: "00000000-0000-0000-0000-100000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object1",
+	Description: "object1",
+	Category: "category1",
+	Tags: []types.ObjectTag{"tag2"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+types.Object{
+	ID: "00000000-0000-0000-0000-200000000000",
+	OwnerID: types.UserID("00000001-0000-0000-0000-000000000000"),
+	Name: "object2",
+	Description: "object2",
+	Category: "category2",
+	Tags: []types.ObjectTag{"tag1"},
+	ImageHash: "123",
+	ModelHash: "456",
+	TextureHash: "789",
+}
+*/
 
 func TestDatabase_ObjectExists(t *testing.T) {
 	type args struct {

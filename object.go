@@ -92,9 +92,9 @@ func (app App) ObjectFiles(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// PrepareObject receives a types.Object and caches it while responding with the generated unique ID
+// ObjectPrepare receives a types.Object and caches it while responding with the generated unique ID
 // so the client can begin uploading files for that object.
-func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
+func (app App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return
@@ -148,6 +148,9 @@ func (app App) PrepareObject(w http.ResponseWriter, r *http.Request) {
 	object.ID = types.ObjectID(uuid.New().String())
 
 	app.UploadWaiter(object)
+
+	logger.Debug("prepared new object upload waiter",
+		zap.String("objectid", string(object.ID)))
 
 	payload, err = json.Marshal(object)
 	if err != nil {
@@ -245,37 +248,77 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 
 // UploadWaiter is called when an upload is prepared and awaits files from ObjectUpload
 func (app App) UploadWaiter(object types.Object) {
-	app.Uploads[object.ID] = make(chan types.ObjectFile, 16)
+	ch := make(chan types.ObjectFile, 16)
+	app.Uploads[object.ID] = ch
+
+	duration := time.Minute * 30
 
 	go func() {
-		timeout := time.NewTimer(time.Hour)
+		timeout := time.NewTimer(duration)
+		success := true
+
+		// make sure we don't leak map entries
+		defer delete(app.Uploads, object.ID)
 
 		for {
 			select {
-			case file := <-app.Uploads[object.ID]:
+			case file, ok := <-ch:
+				if !ok {
+					ch = nil
+				}
+
 				logger.Debug("waiter received file",
 					zap.String("name", string(file.Name)),
-					zap.String("type", string(file.Type)))
-				//
+					zap.String("type", string(file.Type)),
+					zap.String("objectid", string(object.ID)))
+
+				switch file.Type {
+				case "image":
+					object.Images = append(object.Images, types.File(file.Name))
+				case "model":
+					object.Models = append(object.Models, types.File(file.Name))
+				case "texture":
+					object.Textures = append(object.Textures, types.File(file.Name))
+				}
+
+				timeout.Reset(duration)
 			case <-timeout.C:
-				// cache dropped
-				return
+				success = false
+				close(ch)
+			}
+			if ch == nil {
+				break
 			}
 		}
 
-		err := app.Storage.CreateObject(object)
-		if err != nil {
-			logger.Error("failed to create object metadata in database",
-				zap.Error(err))
-			return
-		}
+		if success {
+			logger.Debug("object upload cache closed successfully, attempting to write to db",
+				zap.String("objectid", string(object.ID)))
 
-		delete(app.Uploads, object.ID)
+			err := app.Storage.CreateObject(object)
+			if err != nil {
+				logger.Error("failed to create object metadata in database",
+					zap.Error(err),
+					zap.String("objectid", string(object.ID)))
+				return
+			}
+		} else {
+			logger.Debug("dropped cache waiter for upload",
+				zap.String("objectid", string(object.ID)))
+
+			// todo: purge S3 bucket
+		}
 	}()
 }
 
 // AddFile adds a file from an upload to a pending waiter and writes the file to the file store
 func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (err error) {
+	ch, ok := app.Uploads[objectID]
+	if !ok {
+		err = errors.New("no upload cache by that ID")
+		return
+	}
+
 	err = app.Storage.PutObjectFile(objectID, filename, p)
 	if err != nil {
 		err = errors.Wrap(err, "failed to write object to store")
@@ -291,10 +334,35 @@ func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (e
 		filetype = "texture"
 	}
 
-	app.Uploads[objectID] <- types.ObjectFile{
+	ch <- types.ObjectFile{
 		Name: filename,
 		Type: filetype,
 	}
 
 	return
+}
+
+// ObjectFinish finishes an upload process and closes the channel resulting in the object getting
+// created in the database.
+func (app App) ObjectFinish(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	objectID := types.ObjectID(vars["objectid"])
+	if err := objectID.Validate(); err != nil {
+		WriteResponseError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	logger.Debug("received request to finish upload",
+		zap.String("objectid", string(objectID)))
+
+	ch, ok := app.Uploads[objectID]
+	if !ok {
+		WriteResponseError(w, http.StatusNotFound, errors.New("no cache open with that ID"))
+		return
+	}
+
+	close(ch)
+
+	logger.Debug("finished upload for object files",
+		zap.String("objectid", string(objectID)))
 }

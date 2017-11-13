@@ -63,6 +63,9 @@ func Initialise(config Config) *App {
 	// app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 	app.Sessions = sessions.NewCookieStore([]byte(`securecookie.GenerateRandomKey(64)`))
 
+	// Set up a channel pool where each channel is keyed by an object ID
+	app.Uploads = make(map[types.ObjectID]chan types.ObjectFile)
+
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)
 

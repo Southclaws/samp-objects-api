@@ -31,7 +31,7 @@ type UploadResponse struct {
 }
 
 // ObjectsList handles the /objects endpoint, it returns a query result of objects
-func (app App) ObjectsList(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 	objects, err := app.Storage.GetObjects()
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, err)
@@ -48,7 +48,7 @@ func (app App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 }
 
 // Objects handles the /objects/:userName/:objectName endpoint, it returns the metadata for a specific object
-func (app App) Objects(w http.ResponseWriter, r *http.Request) {
+func (app *App) Objects(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userName := types.UserName(vars["userName"])
 	objectName := types.ObjectName(vars["objectName"])
@@ -69,7 +69,7 @@ func (app App) Objects(w http.ResponseWriter, r *http.Request) {
 }
 
 // ObjectThumb handles requests for object image thumbails
-func (app App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectID := types.ObjectID(vars["objectid"])
 
@@ -85,7 +85,7 @@ func (app App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 }
 
 // ObjectFiles handles requests for object files by name
-func (app App) ObjectFiles(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectID := types.ObjectID(vars["objectid"])
 	fileName := types.File(vars["fileName"])
@@ -99,7 +99,7 @@ func (app App) ObjectFiles(w http.ResponseWriter, r *http.Request) {
 
 // ObjectPrepare receives a types.Object and caches it while responding with the generated unique ID
 // so the client can begin uploading files for that object.
-func (app App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return
@@ -167,7 +167,7 @@ func (app App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
 }
 
 // ObjectUpload is the file upload endpoint
-func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 	resp := UploadResponse{}
 	defer func() {
 		payload, err := json.Marshal(&resp)
@@ -223,7 +223,7 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 
 				err = app.AddFile(objectID, filename, p)
 				if err != nil {
-					logger.Error("failed to update object metadata in databasea",
+					logger.Error("failed to update object upload cache",
 						zap.Error(err))
 					resp.Error = err.Error()
 					return
@@ -252,9 +252,16 @@ func (app App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadWaiter is called when an upload is prepared and awaits files from ObjectUpload
-func (app App) UploadWaiter(object types.Object) {
+func (app *App) UploadWaiter(object types.Object) {
 	ch := make(chan types.ObjectFile, 16)
-	app.Uploads[object.ID] = ch
+
+	app.Uploads.Store(string(object.ID), ActiveUpload{
+		ch:     ch,
+		object: object,
+	})
+
+	logger.Debug("created new object upload waiter",
+		zap.String("objectid", string(object.ID)))
 
 	duration := time.Minute * 30
 
@@ -263,7 +270,7 @@ func (app App) UploadWaiter(object types.Object) {
 		success := true
 
 		// make sure we don't leak map entries
-		defer delete(app.Uploads, object.ID)
+		defer app.Uploads.Delete(string(object.ID))
 
 		for {
 			select {
@@ -277,14 +284,35 @@ func (app App) UploadWaiter(object types.Object) {
 					zap.String("type", string(file.Type)),
 					zap.String("objectid", string(object.ID)))
 
+				uploadRaw, ok := app.Uploads.Load(string(object.ID))
+				if !ok {
+					// todo: handle this error somehow
+					logger.Error("failed to load object upload state while accepting a new file",
+						zap.String("name", string(file.Name)),
+						zap.String("type", string(file.Type)),
+						zap.String("objectid", string(object.ID)))
+					return
+				}
+				upload, ok := uploadRaw.(ActiveUpload)
+				if !ok {
+					// todo: handle this error somehow
+					logger.Error("failed to decode object upload state while accepting a new file",
+						zap.String("name", string(file.Name)),
+						zap.String("type", string(file.Type)),
+						zap.String("objectid", string(object.ID)))
+					return
+				}
+
 				switch file.Type {
 				case "image":
-					object.Images = append(object.Images, types.File(file.Name))
+					upload.object.Images = append(upload.object.Images, types.File(file.Name))
 				case "model":
-					object.Models = append(object.Models, types.File(file.Name))
+					upload.object.Models = append(upload.object.Models, types.File(file.Name))
 				case "texture":
-					object.Textures = append(object.Textures, types.File(file.Name))
+					upload.object.Textures = append(upload.object.Textures, types.File(file.Name))
 				}
+
+				app.Uploads.Store(string(object.ID), upload)
 
 				timeout.Reset(duration)
 			case <-timeout.C:
@@ -317,11 +345,14 @@ func (app App) UploadWaiter(object types.Object) {
 }
 
 // AddFile adds a file from an upload to a pending waiter and writes the file to the file store
-func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (err error) {
-	ch, ok := app.Uploads[objectID]
+func (app *App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (err error) {
+	uploadRaw, ok := app.Uploads.Load(string(objectID))
 	if !ok {
-		err = errors.New("no upload cache by that ID")
-		return
+		return errors.New("no upload cache open with that ID")
+	}
+	upload, ok := uploadRaw.(ActiveUpload)
+	if !ok {
+		return errors.New("upload cache corrupted")
 	}
 
 	filetype := "image"
@@ -370,7 +401,7 @@ func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (e
 		return errors.Wrap(err, "failed to close reader")
 	}
 
-	ch <- types.ObjectFile{
+	upload.ch <- types.ObjectFile{
 		Name: filename,
 		Type: filetype,
 	}
@@ -380,7 +411,7 @@ func (app App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (e
 
 // ObjectFinish finishes an upload process and closes the channel resulting in the object getting
 // created in the database.
-func (app App) ObjectFinish(w http.ResponseWriter, r *http.Request) {
+func (app *App) ObjectFinish(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectID := types.ObjectID(vars["objectid"])
 	if err := objectID.Validate(); err != nil {
@@ -391,13 +422,23 @@ func (app App) ObjectFinish(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("received request to finish upload",
 		zap.String("objectid", string(objectID)))
 
-	ch, ok := app.Uploads[objectID]
+	uploadRaw, ok := app.Uploads.Load(string(objectID))
 	if !ok {
-		WriteResponseError(w, http.StatusNotFound, errors.New("no cache open with that ID"))
+		WriteResponseError(w, http.StatusNotFound, errors.New("no upload cache open with that ID"))
+		return
+	}
+	upload, ok := uploadRaw.(ActiveUpload)
+	if !ok {
+		WriteResponseError(w, http.StatusInternalServerError, errors.New("upload cache corrupted"))
 		return
 	}
 
-	close(ch)
+	if err := upload.object.Validate(); err != nil {
+		WriteResponse(w, http.StatusBadRequest, errors.Wrap(err, "object not valid").Error())
+		return
+	}
+
+	close(upload.ch)
 
 	logger.Debug("finished upload for object files",
 		zap.String("objectid", string(objectID)))

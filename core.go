@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -15,13 +16,21 @@ import (
 
 // App stores global state for routing and coordination
 type App struct {
-	ctx      context.Context
-	cancel   context.CancelFunc
-	config   Config
-	router   *mux.Router
-	Storage  *storage.Database
-	Sessions *sessions.CookieStore
-	Uploads  map[types.ObjectID]chan types.ObjectFile
+	ctx            context.Context
+	cancel         context.CancelFunc
+	config         Config
+	router         *mux.Router
+	Storage        *storage.Database
+	Sessions       *sessions.CookieStore
+	Uploads        sync.Map
+	FinishRequests chan types.ObjectID
+}
+
+// ActiveUpload represents an object that's currently being uploaded, it contains a channel where
+// new files are added and a types.Object that represents the current state of the object.
+type ActiveUpload struct {
+	ch     chan types.ObjectFile
+	object types.Object
 }
 
 const (
@@ -62,9 +71,6 @@ func Initialise(config Config) *App {
 	// Set up session manager
 	// app.Sessions = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 	app.Sessions = sessions.NewCookieStore([]byte(`securecookie.GenerateRandomKey(64)`))
-
-	// Set up a channel pool where each channel is keyed by an object ID
-	app.Uploads = make(map[types.ObjectID]chan types.ObjectFile)
 
 	// Set up HTTP server
 	app.router = mux.NewRouter().StrictSlash(true)

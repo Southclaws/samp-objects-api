@@ -85,10 +85,10 @@ func (object Object) Validate() (err error) {
 		return errors.New("category is empty")
 	}
 	if len(object.Images) == 0 {
-		return errors.New("no images in objecet")
+		return errors.New("no images in object")
 	}
 	if len(object.Models) == 0 {
-		return errors.New("no models in objecet")
+		return errors.New("no models in object")
 	}
 	if len(object.Textures) == 0 {
 		return errors.New("no textures in object")

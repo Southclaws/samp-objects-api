@@ -55,6 +55,10 @@ func (app *App) Objects(w http.ResponseWriter, r *http.Request) {
 
 	objects, err := app.Storage.GetUserObject(userName, objectName)
 	if err != nil {
+		if err.Error() == "not found" {
+			WriteResponse(w, http.StatusNotFound, err.Error())
+			return
+		}
 		WriteResponseError(w, http.StatusInternalServerError, err)
 		return
 	}

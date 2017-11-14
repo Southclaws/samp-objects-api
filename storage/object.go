@@ -136,7 +136,7 @@ func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
 
 // GetObjects returns a list of objects based on query parameters
 func (db Database) GetObjects( /*todo: query params*/ ) (objects []types.Object, err error) {
-	err = db.objects.Find(bson.M{}).All(&objects)
+	err = db.objects.Find(bson.M{}).Sort("-_id").All(&objects)
 	return
 }
 

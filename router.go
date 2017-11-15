@@ -49,7 +49,7 @@ func (app App) routes() (routes []Route) {
 		},
 		{
 			Name:          "info",
-			Methods:       []string{"OPTIONS", "GET"},
+			Methods:       []string{"OPTIONS", "GET", "POST"},
 			Path:          "/v0/accounts/info",
 			Authenticated: true,
 			handler:       app.Info,
@@ -65,9 +65,16 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "objects",
 			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/objects/{userName}",
+			Authenticated: false,
+			handler:       app.ObjectsFromUser,
+		},
+		{
+			Name:          "objects",
+			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/objects/{userName}/{objectName}",
 			Authenticated: false,
-			handler:       app.Objects,
+			handler:       app.ObjectByName,
 		},
 		// /images/
 		{
@@ -113,6 +120,14 @@ func (app App) routes() (routes []Route) {
 			Path:          "/v0/object/finish/{objectid}",
 			Authenticated: true,
 			handler:       app.ObjectFinish,
+		},
+		// /object/
+		{
+			Name:          "user",
+			Methods:       []string{"OPTIONS", "GET"},
+			Path:          "/v0/users/{username}",
+			Authenticated: false,
+			handler:       app.User,
 		},
 	}
 	return

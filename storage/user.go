@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"errors"
 	"strings"
 
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
@@ -60,37 +60,55 @@ func (db Database) DeleteUser(userID types.UserID) (err error) {
 }
 
 // GetUser returns a types.User by their unique ID
-func (db Database) GetUser(userID types.UserID) (user types.User, err error) {
+func (db Database) GetUser(userID types.UserID) (user types.User, exists bool, err error) {
 	if err = userID.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid user ID")
 		return
 	}
 
 	err = db.users.Find(bson.M{"id": userID}).One(&user)
 	if err != nil {
-		return
+		if err.Error() == "not found" {
+			err = nil
+		} else {
+			err = errors.Wrap(err, "failed to get user by ID")
+		}
+	} else {
+		exists = true
 	}
-
 	return
 }
 
 // GetUserByName returns a types.User by their name
-func (db Database) GetUserByName(userName types.UserName) (user types.User, err error) {
+func (db Database) GetUserByName(userName types.UserName) (user types.User, exists bool, err error) {
 	if err = userName.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid user name")
 		return
 	}
 
 	err = db.users.Find(bson.M{"name": userName}).One(&user)
+	if err != nil {
+		if err.Error() == "not found" {
+			err = nil
+		} else {
+			err = errors.Wrap(err, "failed to get user by name")
+		}
+	} else {
+		exists = true
+	}
 	return
 }
 
 // UserExists checks if a user exists by their unique ID
 func (db Database) UserExists(userID types.UserID) (exists bool, err error) {
 	if err = userID.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid user ID")
 		return
 	}
 
 	count, err := db.users.Find(bson.M{"id": userID}).Count()
 	if err != nil {
+		err = errors.Wrap(err, "failed to get user by ID")
 		return
 	}
 	return count != 0, err
@@ -99,11 +117,13 @@ func (db Database) UserExists(userID types.UserID) (exists bool, err error) {
 // UserExistsByName checks if a user exists by their name
 func (db Database) UserExistsByName(userName types.UserName) (exists bool, err error) {
 	if err = userName.Validate(); err != nil {
+		err = errors.Wrap(err, "invalid user name")
 		return
 	}
 
 	count, err := db.users.Find(bson.M{"name": userName}).Count()
 	if err != nil {
+		err = errors.Wrap(err, "failed to get user by name")
 		return
 	}
 	return count != 0, err

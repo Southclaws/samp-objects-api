@@ -150,6 +150,20 @@ func (db Database) GetObject(objectID types.ObjectID) (object types.Object, err 
 	return
 }
 
+// GetUserObjects returns an array of types.Object from a specific owner
+func (db Database) GetUserObjects(userName types.UserName) (objects []types.Object, err error) {
+	if err = userName.Validate(); err != nil {
+		return
+	}
+
+	err = db.objects.Find(bson.M{"ownername": userName}).All(&objects)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 // GetUserObject returns a types.Object from a specific owner and an object name
 func (db Database) GetUserObject(userName types.UserName, objectName types.ObjectName) (object types.Object, err error) {
 	if err = userName.Validate(); err != nil {

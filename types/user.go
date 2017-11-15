@@ -21,10 +21,10 @@ type UserPass string
 
 // User represents a user in the system, it contains their profile details and password hash
 type User struct {
-	ID       UserID    `json:"id"`
-	Name     UserName  `json:"name"`
-	Email    UserEmail `json:"email"`
-	Password UserPass  `json:"password"`
+	ID       UserID    `json:"id,omitempty"`
+	Name     UserName  `json:"name,omitempty"`
+	Email    UserEmail `json:"email,omitempty"`
+	Password UserPass  `json:"password,omitempty"`
 }
 
 var (

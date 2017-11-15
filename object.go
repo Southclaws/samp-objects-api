@@ -47,8 +47,34 @@ func (app *App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
-// Objects handles the /objects/:userName/:objectName endpoint, it returns the metadata for a specific object
-func (app *App) Objects(w http.ResponseWriter, r *http.Request) {
+// ObjectsFromUser handles the /objects/:username endpoint, it returns all the objects by a user
+func (app *App) ObjectsFromUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userName := types.UserName(vars["userName"])
+
+	objects, err := app.Storage.GetUserObjects(userName)
+	if err != nil {
+		if err.Error() == "not found" {
+			WriteResponse(w, http.StatusNotFound, err.Error())
+			return
+		}
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	payload, err := json.Marshal(objects)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write(payload)
+}
+
+// ObjectByName handles the /objects/:userName/:objectName endpoint, it returns the metadata for a
+// specific object
+func (app *App) ObjectByName(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userName := types.UserName(vars["userName"])
 	objectName := types.ObjectName(vars["objectName"])
@@ -136,16 +162,20 @@ func (app *App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := app.Storage.GetUser(userID)
+	user, exists, err := app.Storage.GetUser(userID)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.New("failed to get user details by ID"))
+		return
+	}
+	if !exists {
+		WriteResponse(w, http.StatusNotFound, "user not found")
 		return
 	}
 
 	object.OwnerID = user.ID
 	object.OwnerName = user.Name
 
-	exists, err := app.Storage.UserObjectExists(object)
+	exists, err = app.Storage.UserObjectExists(object)
 	if err != nil {
 		return
 	}

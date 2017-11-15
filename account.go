@@ -91,13 +91,13 @@ func (app App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := app.Storage.GetUserByName(authRequest.Username)
+	user, exists, err := app.Storage.GetUserByName(authRequest.Username)
 	if err != nil {
-		if err.Error() == "not found" {
-			WriteResponse(w, http.StatusUnauthorized, "username not found")
-			return
-		}
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to lookup user by name"))
+		return
+	}
+	if !exists {
+		WriteResponse(w, http.StatusUnauthorized, "user not found")
 		return
 	}
 
@@ -161,9 +161,13 @@ func (app App) Info(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		user, err := app.Storage.GetUser(userID)
+		user, exists, err := app.Storage.GetUser(userID)
 		if err != nil {
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get user object"))
+			return
+		}
+		if !exists {
+			WriteResponse(w, http.StatusNotFound, "user not found")
 			return
 		}
 

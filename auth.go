@@ -79,6 +79,10 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 			return []byte(app.config.AuthSecret), nil
 		})
 		if err != nil {
+			if err.Error() == "Token is expired" {
+				WriteResponse(w, http.StatusUnauthorized, "login token expired")
+				return
+			}
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse Authorization header"))
 			return
 		}

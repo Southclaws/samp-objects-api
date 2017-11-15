@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
 
@@ -107,23 +109,25 @@ func TestDatabase_GetUser(t *testing.T) {
 		id types.UserID
 	}
 	tests := []struct {
-		name     string
-		args     args
-		wantUser types.User
-		wantErr  bool
+		name       string
+		args       args
+		wantUser   types.User
+		wantExists bool
+		wantErr    bool
 	}{
-		{"i user1", args{types.UserID("10000000-0000-0000-0000-000000000000")}, types.User{}, true},
-		{"v user2", args{types.UserID("20000000-0000-0000-0000-000000000000")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, false},
-		{"v user3", args{types.UserID("30000000-0000-0000-0000-000000000000")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, false},
-		{"i user4", args{types.UserID("40000000-0000-0000-0000-000000000000")}, types.User{}, true},
+		{"i user1", args{types.UserID("10000000-0000-0000-0000-000000000000")}, types.User{}, false, false},
+		{"v user2", args{types.UserID("20000000-0000-0000-0000-000000000000")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, true, false},
+		{"v user3", args{types.UserID("30000000-0000-0000-0000-000000000000")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, true, false},
+		{"i user4", args{types.UserID("40000000-0000-0000-0000-000000000000")}, types.User{}, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUser, err := db.GetUser(tt.args.id)
+			gotUser, gotExists, err := db.GetUser(tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Database.GetUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			assert.Equal(t, tt.wantExists, gotExists)
 			if !reflect.DeepEqual(gotUser, tt.wantUser) {
 				t.Errorf("Database.GetUser() = %v, want %v", gotUser, tt.wantUser)
 			}
@@ -140,26 +144,28 @@ func TestDatabase_GetUserByName(t *testing.T) {
 		username types.UserName
 	}
 	tests := []struct {
-		name     string
-		args     args
-		wantUser types.User
-		wantErr  bool
+		name       string
+		args       args
+		wantUser   types.User
+		wantExists bool
+		wantErr    bool
 	}{
-		{"i user1", args{types.UserName("user1")}, types.User{}, true},
-		{"v user2", args{types.UserName("user2")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, false},
-		{"v user3", args{types.UserName("user3new")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, false},
-		{"i user3", args{types.UserName("user3")}, types.User{}, true},
-		{"i user4", args{types.UserName("user4")}, types.User{}, true},
-		{"i blank", args{types.UserName("")}, types.User{}, true},
-		{"i invalid", args{types.UserName("user_1")}, types.User{}, true},
+		{"i user1", args{types.UserName("user1")}, types.User{}, false, false},
+		{"v user2", args{types.UserName("user2")}, types.User{"20000000-0000-0000-0000-000000000000", "user2", "mail2new", "pass2"}, true, false},
+		{"v user3", args{types.UserName("user3new")}, types.User{"30000000-0000-0000-0000-000000000000", "user3new", "mail3", "pass3"}, true, false},
+		{"i user3", args{types.UserName("user3")}, types.User{}, false, false},
+		{"i user4", args{types.UserName("user4")}, types.User{}, false, false},
+		{"i blank", args{types.UserName("")}, types.User{}, false, true},
+		{"i invalid", args{types.UserName("user_1")}, types.User{}, false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUser, err := db.GetUserByName(tt.args.username)
+			gotUser, gotExists, err := db.GetUserByName(tt.args.username)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Database.GetUserByName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			assert.Equal(t, tt.wantExists, gotExists)
 			if !reflect.DeepEqual(gotUser, tt.wantUser) {
 				t.Errorf("Database.GetUserByName() = %v, want %v", gotUser, tt.wantUser)
 			}

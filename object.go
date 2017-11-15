@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
@@ -32,37 +33,29 @@ type UploadResponse struct {
 
 // ObjectsList handles the /objects endpoint, it returns a query result of objects
 func (app *App) ObjectsList(w http.ResponseWriter, r *http.Request) {
-	objects, err := app.Storage.GetObjects()
+	userName := types.UserName(r.URL.Query().Get("userName"))
+
+	category := types.ObjectCategory(r.URL.Query().Get("category"))
+
+	var tags []string
+	tagString := r.URL.Query().Get("tags")
+	if tagString != "" {
+		tags = strings.Split(tagString, ",")
+	}
+
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "-_id"
+	}
+
+	logger.Debug(fmt.Sprint("object query parameters", userName, category, tags, sort))
+
+	objects, err := app.Storage.GetObjects(userName, category, tags, sort)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	payload, err := json.Marshal(objects)
-	if err != nil {
-		WriteResponseError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Write(payload)
-}
-
-// ObjectsFromUser handles the /objects/:username endpoint, it returns all the objects by a user
-func (app *App) ObjectsFromUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userName := types.UserName(vars["userName"])
-
-	objects, err := app.Storage.GetUserObjects(userName)
-	if err != nil {
-		if err.Error() == "not found" {
-			WriteResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		WriteResponseError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	payload, err := json.Marshal(objects)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, err)

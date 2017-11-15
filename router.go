@@ -65,13 +65,6 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "objects",
 			Methods:       []string{"OPTIONS", "GET"},
-			Path:          "/v0/objects/{userName}",
-			Authenticated: false,
-			handler:       app.ObjectsFromUser,
-		},
-		{
-			Name:          "objects",
-			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/objects/{userName}/{objectName}",
 			Authenticated: false,
 			handler:       app.ObjectByName,

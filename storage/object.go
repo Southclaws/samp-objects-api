@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"image/jpeg"
 	"io"
 	"path/filepath"
@@ -135,8 +136,30 @@ func (db Database) DeleteObject(objectID types.ObjectID) (err error) {
 }
 
 // GetObjects returns a list of objects based on query parameters
-func (db Database) GetObjects( /*todo: query params*/ ) (objects []types.Object, err error) {
-	err = db.objects.Find(bson.M{}).Sort("-_id").All(&objects)
+func (db Database) GetObjects(
+	userName types.UserName,
+	category types.ObjectCategory,
+	tags []string,
+	sort string,
+) (objects []types.Object, err error) {
+	query := bson.M{}
+
+	if userName != "" {
+		query["ownername"] = userName
+	}
+
+	if category != "" {
+		query["category"] = category
+	}
+
+	if len(tags) > 0 {
+		query["tags"] = bson.M{"$in": tags}
+	}
+
+	fmt.Println(len(tags), query)
+
+	err = db.objects.Find(query).Sort(sort).All(&objects)
+
 	return
 }
 

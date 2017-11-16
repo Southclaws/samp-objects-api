@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,7 +11,7 @@ import (
 )
 
 // AddRating adds a rating to an object from a user
-func (db *Database) AddRating(userID types.UserID, objectID types.ObjectID, value float64) (err error) {
+func (db *Database) AddRating(userID types.UserID, objectID types.ObjectID, value float64) (exists bool, err error) {
 	err = db.ratings.Insert(types.Rating{
 		UserID:   userID,
 		ObjectID: objectID,
@@ -19,14 +19,17 @@ func (db *Database) AddRating(userID types.UserID, objectID types.ObjectID, valu
 		Date:     time.Now(),
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to insert new rating")
+		if strings.Contains(err.Error(), "UNIQUE_USER_OBJECT_RATING") {
+			return true, nil
+		}
+		return false, errors.Wrap(err, "failed to insert new rating")
 	}
-	fmt.Println(userID, objectID, value)
+
 	err = db.objects.Update(
 		bson.M{"id": objectID},
 		bson.M{"$inc": bson.M{
 			"ratecount": 1,
 			"ratetotal": value,
 		}})
-	return errors.Wrap(err, "failed to increment rate count and rate total")
+	return
 }

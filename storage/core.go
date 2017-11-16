@@ -13,6 +13,7 @@ type Database struct {
 	session *mgo.Session
 	users   *mgo.Collection
 	objects *mgo.Collection
+	ratings *mgo.Collection
 	store   *minio.Client
 
 	StoreBucket   string
@@ -67,6 +68,10 @@ func New(config Config) (*Database, error) {
 	err = database.ensureObjectCollection(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to ensure object collection")
+	}
+	err = database.ensureRatingCollection(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to ensure ratings collection")
 	}
 
 	database.store, err = minio.New(
@@ -155,7 +160,7 @@ func (database *Database) ensureUserCollection(config Config) (err error) {
 		Unique: true,
 	})
 
-	return err
+	return
 }
 
 func (database *Database) ensureObjectCollection(config Config) (err error) {
@@ -172,9 +177,32 @@ func (database *Database) ensureObjectCollection(config Config) (err error) {
 	database.objects = database.session.DB(config.MongoName).C("objects")
 
 	err = database.objects.EnsureIndex(mgo.Index{
+		Name:   "UNIQUE_OBJECT_ID",
 		Key:    []string{"id"},
 		Unique: true,
 	})
 
-	return err
+	return
+}
+
+func (database *Database) ensureRatingCollection(config Config) (err error) {
+	exists, err := database.CollectionExists(config.MongoName, "ratings")
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err = database.session.DB(config.MongoName).C("ratings").Create(&config.MongoCollectionInfo)
+		if err != nil {
+			return err
+		}
+	}
+	database.ratings = database.session.DB(config.MongoName).C("ratings")
+
+	err = database.ratings.EnsureIndex(mgo.Index{
+		Name:   "UNIQUE_USER_OBJECT_RATING",
+		Key:    []string{"userid", "objectid"},
+		Unique: true,
+	})
+
+	return
 }

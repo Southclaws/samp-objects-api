@@ -18,6 +18,12 @@ type ObjectCategory string
 // ObjectTag represents a search tag for an object
 type ObjectTag string
 
+// ObjectRateCount represents the number of ratings an object has received
+type ObjectRateCount int
+
+// ObjectRateTotal represents the total sum of all ratings on an object
+type ObjectRateTotal float64
+
 // File represents an object's content filename
 type File string
 
@@ -31,6 +37,9 @@ type Object struct {
 	Description ObjectDescription `json:"description"`
 	Category    ObjectCategory    `json:"category"`
 	Tags        []ObjectTag       `json:"tags"`
+	RateCount   ObjectRateCount   `json:"rate_count"`
+	RateTotal   ObjectRateTotal   `json:"rate_value"`
+	RateAverage float64           `json:"rate_value" bson:"-"` // not stored in db
 	Images      []File            `json:"images"`
 	Models      []File            `json:"models"`
 	Textures    []File            `json:"textures"`

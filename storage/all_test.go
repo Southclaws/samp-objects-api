@@ -38,6 +38,10 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			panic(err)
 		}
+		_, err = db.ratings.RemoveAll(bson.M{})
+		if err != nil {
+			panic(err)
+		}
 
 		// clean S3 bucket
 		doneCh := make(chan struct{})

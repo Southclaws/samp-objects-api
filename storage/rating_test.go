@@ -3,9 +3,8 @@ package storage
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDatabase_AddRating(t *testing.T) {
@@ -50,6 +49,38 @@ func TestDatabase_AddRating(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.wantExists, gotExists)
+		})
+	}
+}
+
+func TestDatabase_RemoveRating(t *testing.T) {
+	type args struct {
+		userID   types.UserID
+		objectID types.ObjectID
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"valid", args{
+			"00000003-0000-0000-0000-000000000000",
+			"00000000-0000-0000-0000-200000000000",
+		}, false},
+		{"valid", args{
+			"00000002-0000-0000-0000-000000000000",
+			"00000000-0000-0000-0000-200000000000",
+		}, false},
+		{"valid", args{
+			"00000001-0000-0000-0000-000000000000",
+			"00000000-0000-0000-0000-200000000000",
+		}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := db.RemoveRating(tt.args.userID, tt.args.objectID); (err != nil) != tt.wantErr {
+				t.Errorf("Database.RemoveRating() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

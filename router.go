@@ -114,13 +114,21 @@ func (app App) routes() (routes []Route) {
 			Authenticated: true,
 			handler:       app.ObjectFinish,
 		},
-		// /object/
+		// /users/
 		{
 			Name:          "user",
 			Methods:       []string{"OPTIONS", "GET"},
 			Path:          "/v0/users/{username}",
 			Authenticated: false,
 			handler:       app.User,
+		},
+		// /ratings/
+		{
+			Name:          "set or delete rating",
+			Methods:       []string{"OPTIONS", "POST", "DELETE"},
+			Path:          "/v0/ratings/{userid}/{objectid}",
+			Authenticated: false,
+			handler:       app.Ratings,
 		},
 	}
 	return

@@ -39,7 +39,7 @@ type Object struct {
 	Tags        []ObjectTag       `json:"tags"`
 	RateCount   ObjectRateCount   `json:"rate_count"`
 	RateTotal   ObjectRateTotal   `json:"rate_value"`
-	RateAverage float64           `json:"rate_value" bson:"-"` // not stored in db
+	RateAverage float64           `json:"rate_average" bson:"-"` // not stored in db
 	Images      []File            `json:"images"`
 	Models      []File            `json:"models"`
 	Textures    []File            `json:"textures"`

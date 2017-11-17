@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
+	"github.com/pkg/errors"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
-	"github.com/pkg/errors"
 )
 
 // AddComment creates a comment from a user on an object

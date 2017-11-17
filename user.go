@@ -11,8 +11,8 @@ import (
 // User endpoints differ from Account endpoints as they deal with public information only such as
 // profiles, ratings, statistics, etc.
 
-// User handles the /user/:userid endpoint and returns a public User object
-func (app *App) User(w http.ResponseWriter, r *http.Request) {
+// UserProfile handles the /user/:userid endpoint and returns a public User object
+func (app *App) UserProfile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userName := types.UserName(vars["username"])
 

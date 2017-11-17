@@ -139,8 +139,8 @@ func (app App) Refresh(w http.ResponseWriter, r *http.Request) {
 	app.WriteToken(w, r, session, userID)
 }
 
-// Info returns a types.User object for the user making the request
-func (app App) Info(w http.ResponseWriter, r *http.Request) {
+// AccountGetInfo returns a types.User object for the user making the request
+func (app App) AccountGetInfo(w http.ResponseWriter, r *http.Request) {
 	session, err := app.Sessions.Get(r, UserSessionCookie)
 	if err != nil {
 		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session, clear cookies and log in again"))
@@ -159,63 +159,81 @@ func (app App) Info(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch r.Method {
-	case "GET":
-		user, exists, err := app.Storage.GetUser(userID)
-		if err != nil {
-			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get user object"))
-			return
-		}
-		if !exists {
-			WriteResponse(w, http.StatusNotFound, "user not found")
-			return
-		}
+	user, exists, err := app.Storage.GetUser(userID)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get user object"))
+		return
+	}
+	if !exists {
+		WriteResponse(w, http.StatusNotFound, "user not found")
+		return
+	}
 
-		// blank out the password hash, this request does not need it
-		user.Password = ""
+	// blank out the password hash, this request does not need it
+	user.Password = ""
 
-		payload, err := json.Marshal(user)
-		if err != nil {
-			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode response"))
-			return
-		}
+	payload, err := json.Marshal(user)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode response"))
+		return
+	}
 
-		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write(payload)
-		if err != nil {
-			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write payload"))
-			return
-		}
-	case "PATCH":
-		payload, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read payload"))
-			return
-		}
-		r.Body.Close()
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(payload)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write payload"))
+		return
+	}
+}
 
-		user := types.User{}
-		err = json.Unmarshal(payload, &user)
-		if err != nil {
-			WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to decode payload"))
-			return
-		}
+// AccountUpdateInfo updates a user's information
+func (app *App) AccountUpdateInfo(w http.ResponseWriter, r *http.Request) {
+	session, err := app.Sessions.Get(r, UserSessionCookie)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session, clear cookies and log in again"))
+		return
+	}
 
-		if user.ID != userID {
-			WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "request user ID does not match request payload"))
-			return
-		}
+	userIDraw, ok := session.Values["UserID"]
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read user ID from session"))
+		return
+	}
 
-		err = user.Validate()
-		if err != nil {
-			WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "malformed user object"))
-			return
-		}
+	userID, ok := userIDraw.(types.UserID)
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to interpret user ID as string"))
+		return
+	}
 
-		err = app.Storage.UpdateUser(user)
-		if err != nil {
-			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to update user info"))
-			return
-		}
+	payload, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read payload"))
+		return
+	}
+	r.Body.Close()
+
+	user := types.User{}
+	err = json.Unmarshal(payload, &user)
+	if err != nil {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to decode payload"))
+		return
+	}
+
+	if user.ID != userID {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "request user ID does not match request payload"))
+		return
+	}
+
+	err = user.Validate()
+	if err != nil {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "malformed user object"))
+		return
+	}
+
+	err = app.Storage.UpdateUser(user)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to update user info"))
+		return
 	}
 }

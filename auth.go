@@ -83,6 +83,10 @@ func (app *App) Authenticated(next http.Handler) http.Handler {
 				WriteResponse(w, http.StatusUnauthorized, "login token expired")
 				return
 			}
+			if err.Error() == "no token present in request" {
+				WriteResponse(w, http.StatusUnauthorized, "no token present in request")
+				return
+			}
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse Authorization header"))
 			return
 		}

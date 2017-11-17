@@ -10,8 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Ratings handles the /ratings/{userid}/{objectid}
-func (app *App) Ratings(w http.ResponseWriter, r *http.Request) {
+// RatingCreate handles the POST /ratings/{objectid} endpoint and attempts to add a rating to an
+// object from a user, if that rating already exists, it is removed.
+func (app *App) RatingCreate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectID := types.ObjectID(vars["objectid"])
 
@@ -63,4 +64,9 @@ func (app *App) Ratings(w http.ResponseWriter, r *http.Request) {
 	} else {
 		WriteResponse(w, http.StatusCreated, "rating created")
 	}
+}
+
+// RatingList handles the GET /ratings/{objectid} endpoint and returns a list of ratings
+func (app *App) RatingList(w http.ResponseWriter, r *http.Request) {
+	WriteResponseError(w, http.StatusNotImplemented, nil)
 }

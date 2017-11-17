@@ -10,11 +10,12 @@ import (
 
 // Database represents the storage backend state
 type Database struct {
-	session *mgo.Session
-	users   *mgo.Collection
-	objects *mgo.Collection
-	ratings *mgo.Collection
-	store   *minio.Client
+	session  *mgo.Session
+	users    *mgo.Collection
+	objects  *mgo.Collection
+	ratings  *mgo.Collection
+	comments *mgo.Collection
+	store    *minio.Client
 
 	StoreBucket   string
 	StoreLocation string
@@ -70,6 +71,10 @@ func New(config Config) (*Database, error) {
 		return nil, errors.Wrap(err, "failed to ensure object collection")
 	}
 	err = database.ensureRatingCollection(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to ensure ratings collection")
+	}
+	err = database.ensureCommentCollection(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to ensure ratings collection")
 	}
@@ -203,6 +208,22 @@ func (database *Database) ensureRatingCollection(config Config) (err error) {
 		Key:    []string{"userid", "objectid"},
 		Unique: true,
 	})
+
+	return
+}
+
+func (database *Database) ensureCommentCollection(config Config) (err error) {
+	exists, err := database.CollectionExists(config.MongoName, "comments")
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err = database.session.DB(config.MongoName).C("comments").Create(&config.MongoCollectionInfo)
+		if err != nil {
+			return err
+		}
+	}
+	database.comments = database.session.DB(config.MongoName).C("comments")
 
 	return
 }

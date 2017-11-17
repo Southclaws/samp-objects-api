@@ -13,8 +13,25 @@ import (
 // Ratings handles the /ratings/{userid}/{objectid}
 func (app *App) Ratings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	userID := types.UserID(vars["userid"])
 	objectID := types.ObjectID(vars["objectid"])
+
+	session, err := app.Sessions.Get(r, UserSessionCookie)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read or create cookie session, clear cookies and log in again"))
+		return
+	}
+
+	userIDraw, ok := session.Values["UserID"]
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to read user ID from session"))
+		return
+	}
+
+	userID, ok := userIDraw.(types.UserID)
+	if !ok {
+		WriteResponseError(w, http.StatusBadRequest, errors.Wrap(err, "failed to interpret user ID as string"))
+		return
+	}
 
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -43,7 +60,7 @@ func (app *App) Ratings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		WriteResponse(w, http.StatusAccepted, "rating removed")
+	} else {
+		WriteResponse(w, http.StatusCreated, "rating created")
 	}
-
-	WriteResponse(w, http.StatusCreated, "rating created")
 }

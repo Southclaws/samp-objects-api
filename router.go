@@ -126,7 +126,7 @@ func (app App) routes() (routes []Route) {
 		{
 			Name:          "set or delete rating",
 			Methods:       []string{"OPTIONS", "POST", "DELETE"},
-			Path:          "/v0/ratings/{userid}/{objectid}",
+			Path:          "/v0/ratings/{objectid}",
 			Authenticated: false,
 			handler:       app.Ratings,
 		},

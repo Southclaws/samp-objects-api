@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
@@ -47,8 +46,6 @@ func (app *App) ObjectsList(w http.ResponseWriter, r *http.Request) {
 	if sort == "" {
 		sort = "-_id"
 	}
-
-	logger.Debug(fmt.Sprint("object query parameters", userName, category, tags, sort))
 
 	objects, err := app.Storage.GetObjects(userName, category, tags, sort)
 	if err != nil {
@@ -179,7 +176,7 @@ func (app *App) ObjectPrepare(w http.ResponseWriter, r *http.Request) {
 
 	object.ID = types.ObjectID(uuid.New().String())
 
-	app.UploadWaiter(object)
+	app.StartUploadWaiter(object)
 
 	logger.Debug("prepared new object upload waiter",
 		zap.String("objectid", string(object.ID)))
@@ -278,8 +275,8 @@ func (app *App) ObjectUpload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UploadWaiter is called when an upload is prepared and awaits files from ObjectUpload
-func (app *App) UploadWaiter(object types.Object) {
+// StartUploadWaiter is called when an upload is prepared and awaits files from ObjectUpload
+func (app *App) StartUploadWaiter(object types.Object) {
 	ch := make(chan types.ObjectFile, 16)
 
 	app.Uploads.Store(string(object.ID), ActiveUpload{
@@ -290,85 +287,103 @@ func (app *App) UploadWaiter(object types.Object) {
 	logger.Debug("created new object upload waiter",
 		zap.String("objectid", string(object.ID)))
 
+	go app.UploadWaiter(object.ID, ch)
+}
+
+// UploadWaiter is a goroutine that awaits new files for an upload in progress
+func (app *App) UploadWaiter(objectID types.ObjectID, ch chan types.ObjectFile) {
 	duration := time.Minute * 30
+	timeout := time.NewTimer(duration)
+	success := true
 
-	go func() {
-		timeout := time.NewTimer(duration)
-		success := true
+	// make sure we don't leak map entries
+	defer app.Uploads.Delete(string(objectID))
 
-		// make sure we don't leak map entries
-		defer app.Uploads.Delete(string(object.ID))
+	for {
+		select {
+		case file, ok := <-ch:
+			if !ok {
+				ch = nil
+			}
 
-		for {
-			select {
-			case file, ok := <-ch:
-				if !ok {
-					ch = nil
-				}
+			logger.Debug("waiter received file",
+				zap.String("name", string(file.Name)),
+				zap.String("type", string(file.Type)),
+				zap.String("objectid", string(objectID)))
 
-				logger.Debug("waiter received file",
+			uploadRaw, ok := app.Uploads.Load(string(objectID))
+			if !ok {
+				// todo: handle this error somehow
+				logger.Error("failed to load object upload state while accepting a new file",
 					zap.String("name", string(file.Name)),
 					zap.String("type", string(file.Type)),
-					zap.String("objectid", string(object.ID)))
-
-				uploadRaw, ok := app.Uploads.Load(string(object.ID))
-				if !ok {
-					// todo: handle this error somehow
-					logger.Error("failed to load object upload state while accepting a new file",
-						zap.String("name", string(file.Name)),
-						zap.String("type", string(file.Type)),
-						zap.String("objectid", string(object.ID)))
-					return
-				}
-				upload, ok := uploadRaw.(ActiveUpload)
-				if !ok {
-					// todo: handle this error somehow
-					logger.Error("failed to decode object upload state while accepting a new file",
-						zap.String("name", string(file.Name)),
-						zap.String("type", string(file.Type)),
-						zap.String("objectid", string(object.ID)))
-					return
-				}
-
-				switch file.Type {
-				case "image":
-					upload.object.Images = append(upload.object.Images, types.File(file.Name))
-				case "model":
-					upload.object.Models = append(upload.object.Models, types.File(file.Name))
-				case "texture":
-					upload.object.Textures = append(upload.object.Textures, types.File(file.Name))
-				}
-
-				app.Uploads.Store(string(object.ID), upload)
-
-				timeout.Reset(duration)
-			case <-timeout.C:
-				success = false
-				close(ch)
-			}
-			if ch == nil {
-				break
-			}
-		}
-
-		if success {
-			logger.Debug("object upload cache closed successfully, attempting to write to db",
-				zap.String("objectid", string(object.ID)))
-
-			err := app.Storage.CreateObject(object)
-			if err != nil {
-				logger.Error("failed to create object metadata in database",
-					zap.Error(err),
-					zap.String("objectid", string(object.ID)))
+					zap.String("objectid", string(objectID)))
 				return
 			}
-		} else {
-			logger.Debug("dropped cache waiter for upload",
-				zap.String("objectid", string(object.ID)))
+			upload, ok := uploadRaw.(ActiveUpload)
+			if !ok {
+				// todo: handle this error somehow
+				logger.Error("failed to decode object upload state while accepting a new file",
+					zap.String("name", string(file.Name)),
+					zap.String("type", string(file.Type)),
+					zap.String("objectid", string(objectID)))
+				return
+			}
 
-			// todo: purge S3 bucket
+			switch file.Type {
+			case "image":
+				upload.object.Images = append(upload.object.Images, types.File(file.Name))
+			case "model":
+				upload.object.Models = append(upload.object.Models, types.File(file.Name))
+			case "texture":
+				upload.object.Textures = append(upload.object.Textures, types.File(file.Name))
+			}
+
+			app.Uploads.Store(string(objectID), upload)
+
+			timeout.Reset(duration)
+		case <-timeout.C:
+			success = false
+			close(ch)
 		}
-	}()
+		if ch == nil {
+			break
+		}
+	}
+
+	if !success {
+		logger.Debug("dropped cache waiter for upload",
+			zap.String("objectid", string(objectID)))
+
+		// todo: purge S3 bucket
+		return
+	}
+
+	uploadRaw, ok := app.Uploads.Load(string(objectID))
+	if !ok {
+		// todo: handle this error somehow
+		logger.Error("failed to load object upload state while finishing",
+			zap.String("objectid", string(objectID)))
+		return
+	}
+	upload, ok := uploadRaw.(ActiveUpload)
+	if !ok {
+		// todo: handle this error somehow
+		logger.Error("failed to decode object upload state while finishing",
+			zap.String("objectid", string(objectID)))
+		return
+	}
+
+	logger.Debug("object upload cache closed successfully, attempting to write to db",
+		zap.String("objectid", string(upload.object.ID)))
+
+	err := app.Storage.CreateObject(upload.object)
+	if err != nil {
+		logger.Error("failed to create object metadata in database",
+			zap.Error(err),
+			zap.String("objectid", string(upload.object.ID)))
+		return
+	}
 }
 
 // AddFile adds a file from an upload to a pending waiter and writes the file to the file store

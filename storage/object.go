@@ -159,6 +159,9 @@ func (db Database) GetObjects(
 	fmt.Println(len(tags), query)
 
 	err = db.objects.Find(query).Sort(sort).All(&objects)
+	if err != nil {
+		return
+	}
 
 	return
 }

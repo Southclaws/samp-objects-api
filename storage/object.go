@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"image/jpeg"
 	"io"
 	"path/filepath"
@@ -155,8 +154,6 @@ func (db Database) GetObjects(
 	if len(tags) > 0 {
 		query["tags"] = bson.M{"$in": tags}
 	}
-
-	fmt.Println(len(tags), query)
 
 	err = db.objects.Find(query).Sort(sort).All(&objects)
 	if err != nil {

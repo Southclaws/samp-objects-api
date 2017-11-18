@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
@@ -12,7 +14,26 @@ import (
 // CommentList handles the GET /comments/{objectid} endpoint and returns a list of comments for the
 // specified object ID
 func (app *App) CommentList(w http.ResponseWriter, r *http.Request) {
-	WriteResponseError(w, http.StatusNotImplemented, nil)
+	vars := mux.Vars(r)
+	objectID := types.ObjectID(vars["objectid"])
+
+	comments, err := app.Storage.GetComments(objectID)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get comments"))
+		return
+	}
+
+	payload, err := json.Marshal(comments)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to encode payload"))
+		return
+	}
+
+	_, err = w.Write(payload)
+	if err != nil {
+		WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write response"))
+		return
+	}
 }
 
 // CommentCreate handles the POST /comments/{objectid} endpoint and creates a comment on the

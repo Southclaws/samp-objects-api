@@ -3,11 +3,21 @@ package storage
 import (
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
 	"github.com/pkg/errors"
+	"gopkg.in/mgo.v2/bson"
 
 	"bitbucket.org/Southclaws/samp-objects-api/types"
 )
+
+// GetComments returns a slice of types.Comment for a given object ID
+func (db *Database) GetComments(objectID types.ObjectID) (comments []types.Comment, err error) {
+	if err = objectID.Validate(); err != nil {
+		return
+	}
+
+	err = db.comments.Find(bson.M{"objectid": objectID}).All(&comments)
+	return
+}
 
 // AddComment creates a comment from a user on an object
 func (db *Database) AddComment(userID types.UserID, objectID types.ObjectID, content string) (err error) {
@@ -21,7 +31,7 @@ func (db *Database) AddComment(userID types.UserID, objectID types.ObjectID, con
 		return errors.New("content too large")
 	}
 
-	err = db.ratings.Insert(types.Comment{
+	err = db.comments.Insert(types.Comment{
 		UserID:   userID,
 		ObjectID: objectID,
 		Content:  content,

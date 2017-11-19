@@ -79,6 +79,20 @@ run-prod: build-prod
 		-p 7791:80 \
 		-e DEBUG=1 \
 		-e BIND=0.0.0.0:80 \
+		-e DOMAIN=$(DOMAIN) \
+		-e MONGO_USER=$(MONGO_USER) \
+		-e MONGO_HOST=$(MONGO_HOST) \
+		-e MONGO_PORT=$(MONGO_PORT) \
+		-e MONGO_NAME=$(MONGO_NAME) \
+		-e MONGO_PASS=$(MONGO_PASS) \
+		-e AUTH_SECRET=$(AUTH_SECRET) \
+		-e STORE_PORT=$(STORE_PORT) \
+		-e STORE_ACCESS=$(STORE_ACCESS) \
+		-e STORE_SECRET=$(STORE_SECRET) \
+		-e STORE_SECURE=$(STORE_SECURE) \
+		-e STORE_BUCKET=$(STORE_BUCKET) \
+		-e STORE_HOST=$(STORE_HOST) \
+		-e STORE_LOCATION=$(STORE_LOCATION) \
 		southclaws/samp-objects:$(VERSION)
 	docker network connect samp-objects samp-objects-api
 

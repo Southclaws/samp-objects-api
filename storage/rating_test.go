@@ -3,8 +3,9 @@ package storage
 import (
 	"testing"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 func TestDatabase_AddRating(t *testing.T) {

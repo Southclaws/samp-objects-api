@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // AuthRequest represents the object POSTed to the /login endpoint in order to get a token

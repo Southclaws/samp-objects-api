@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // CommentList handles the GET /comments/{objectid} endpoint and returns a list of comments for the

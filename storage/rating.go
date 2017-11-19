@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // AddRating adds a rating to an object from a user

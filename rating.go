@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // RatingCreate handles the POST /ratings/{objectid} endpoint and attempts to add a rating to an

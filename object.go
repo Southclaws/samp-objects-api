@@ -16,11 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // UploadResponse is the response returned when a client successfully uploads a file

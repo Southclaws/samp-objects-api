@@ -10,8 +10,8 @@ import (
 	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 
-	"bitbucket.org/Southclaws/samp-objects-api/storage"
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/storage"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // App stores global state for routing and coordination

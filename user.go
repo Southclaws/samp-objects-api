@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
 	"github.com/gorilla/mux"
+
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // User endpoints differ from Account endpoints as they deal with public information only such as

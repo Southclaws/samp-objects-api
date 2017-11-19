@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // GetComments returns a slice of types.Comment for a given object ID

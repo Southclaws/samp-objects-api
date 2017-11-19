@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 
-	"bitbucket.org/Southclaws/samp-objects-api/storage"
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/storage"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 // Register handles creating an account for a user

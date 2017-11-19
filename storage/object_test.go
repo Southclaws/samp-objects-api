@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"bitbucket.org/Southclaws/samp-objects-api/types"
+	"github.com/Southclaws/samp-objects-api/types"
 )
 
 func must(err error, rest ...interface{}) {

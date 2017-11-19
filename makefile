@@ -1,10 +1,6 @@
 VERSION := $(shell cat VERSION)
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
-MONGO_PASS := $(shell cat MONGO_PASS.private)
-AUTH_SECRET := $(shell cat AUTH_SECRET.private)
-STORE_ACCESS := $(shell cat STORE_ACCESS.private)
-STORE_SECRET := $(shell cat STORE_SECRET.private)
-STORE_LOCATION := $(shell cat STORE_LOCATION.private)
+-include .env
 
 .PHONY: version
 
@@ -21,7 +17,6 @@ local: fast
 	MONGO_HOST=localhost \
 	MONGO_PORT=27017 \
 	MONGO_NAME=sampobjects \
-	AUTH_SECRET=$(AUTH_SECRET) \
 	STORE_HOST=localhost \
 	STORE_PORT=9000 \
 	STORE_ACCESS=default \
@@ -65,8 +60,6 @@ run:
 		-e MONGO_HOST=localhost \
 		-e MONGO_PORT=27017 \
 		-e MONGO_NAME=sampobjects \
-		-e MONGO_PASS=$(MONGO_PASS) \
-		-e AUTH_SECRET=$(AUTH_SECRET) \
 		-e STORE_HOST=localhost \
 		-e STORE_PORT=9000 \
 		-e STORE_ACCESS=default \
@@ -86,20 +79,6 @@ run-prod:
 		-p 7791:80 \
 		-e DEBUG=1 \
 		-e BIND=0.0.0.0:80 \
-		-e DOMAIN=samp-objects.com \
-		-e MONGO_USER=sampobjects \
-		-e MONGO_HOST=mongodb \
-		-e MONGO_PORT=27017 \
-		-e MONGO_NAME=sampobjects \
-		-e MONGO_PASS=$(MONGO_PASS) \
-		-e AUTH_SECRET=$(AUTH_SECRET) \
-		-e STORE_HOST=ams3.digitaloceanspaces.com \
-		-e STORE_PORT=443 \
-		-e STORE_ACCESS=$(STORE_ACCESS) \
-		-e STORE_SECRET=$(STORE_SECRET) \
-		-e STORE_SECURE=true \
-		-e STORE_BUCKET=samp-objects \
-		-e STORE_LOCATION=$(STORE_LOCATION) \
 		southclaws/samp-objects:$(VERSION)
 	docker network connect samp-objects samp-objects-api
 

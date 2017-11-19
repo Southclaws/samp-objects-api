@@ -38,16 +38,16 @@ test:
 # Docker
 
 build:
-	docker build --no-cache -t southclaws/samp-objects:$(VERSION) -f Dockerfile.dev .
+	docker build --no-cache -t southclaws/samp-objects-api:$(VERSION) -f Dockerfile.dev .
 
 build-prod:
-	docker build --no-cache -t southclaws/samp-objects:$(VERSION) .
+	docker build --no-cache -t southclaws/samp-objects-api:$(VERSION) .
 
 build-test:
 	docker build --no-cache -t southclaws/samp-objects-test:$(VERSION) -f Dockerfile.testing .
 
 push: build-prod
-	docker push southclaws/samp-objects:$(VERSION)
+	docker push southclaws/samp-objects-api:$(VERSION)
 	
 run:
 	-docker rm samp-objects-test
@@ -67,9 +67,9 @@ run:
 		-e STORE_SECURE=false \
 		-e STORE_BUCKET=samp-objects \
 		-e STORE_LOCATION=AMS3 \
-		southclaws/samp-objects:$(VERSION)
+		southclaws/samp-objects-api:$(VERSION)
 
-run-prod: build-prod
+run-prod:
 	-docker stop samp-objects-api
 	-docker rm samp-objects-api
 	docker run \
@@ -93,14 +93,14 @@ run-prod: build-prod
 		-e STORE_BUCKET=$(STORE_BUCKET) \
 		-e STORE_HOST=$(STORE_HOST) \
 		-e STORE_LOCATION=$(STORE_LOCATION) \
-		southclaws/samp-objects:$(VERSION)
+		southclaws/samp-objects-api:$(VERSION)
 	docker network connect samp-objects samp-objects-api
 
 enter:
-	docker run -it --entrypoint=bash southclaws/samp-objects:$(VERSION)
+	docker run -it --entrypoint=bash southclaws/samp-objects-api:$(VERSION)
 
 enter-mount:
-	docker run -v $(shell pwd)/testspace:/samp -it --entrypoint=bash southclaws/samp-objects:$(VERSION)
+	docker run -v $(shell pwd)/testspace:/samp -it --entrypoint=bash southclaws/samp-objects-api:$(VERSION)
 
 # Test stuff
 

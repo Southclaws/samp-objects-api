@@ -69,7 +69,7 @@ run:
 		-e STORE_LOCATION=AMS3 \
 		southclaws/samp-objects:$(VERSION)
 
-run-prod:
+run-prod: build-prod
 	-docker stop samp-objects-api
 	-docker rm samp-objects-api
 	docker run \

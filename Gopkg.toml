@@ -38,10 +38,6 @@
   version = "1.6.0"
 
 [[constraint]]
-  name = "github.com/gorilla/securecookie"
-  version = "1.1.0"
-
-[[constraint]]
   name = "github.com/gorilla/sessions"
   version = "1.1.0"
 
@@ -52,10 +48,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nfnt/resize"
-
-[[constraint]]
-  name = "github.com/patrickmn/go-cache"
-  version = "2.1.0"
 
 [[constraint]]
   name = "github.com/pkg/errors"

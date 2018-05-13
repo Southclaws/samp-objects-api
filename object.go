@@ -96,7 +96,7 @@ func (app *App) ObjectThumb(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Storage.GetObjectThumb(objectID, w)
 	if err != nil {
-		err = jpeg.Encode(w, image.NewGray(image.Rect(0, 0, 200, 200)), &jpeg.Options{50})
+		err = jpeg.Encode(w, image.NewGray(image.Rect(0, 0, 200, 200)), &jpeg.Options{Quality: 50})
 		if err != nil {
 			WriteResponseError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to get object image"))
 			return
@@ -412,23 +412,23 @@ func (app *App) AddFile(objectID types.ObjectID, filename string, p io.Reader) (
 
 	go func() {
 		if filetype == "image" {
-			img, format, err := image.Decode(p)
-			if err != nil {
-				w.CloseWithError(errors.Wrapf(err, "failed to decode image file of format '%s'", format))
+			img, format, errInner := image.Decode(p)
+			if errInner != nil {
+				w.CloseWithError(errors.Wrapf(errInner, "failed to decode image file of format '%s'", format))
 			}
 
-			err = jpeg.Encode(w, img, &jpeg.Options{64})
-			if err != nil {
-				w.CloseWithError(errors.Wrap(err, "failed to re-encode image as JPEG"))
+			errInner = jpeg.Encode(w, img, &jpeg.Options{Quality: 64})
+			if errInner != nil {
+				w.CloseWithError(errors.Wrap(errInner, "failed to re-encode image as JPEG"))
 			}
 		} else {
-			_, err := io.Copy(w, p)
-			if err != nil {
-				w.CloseWithError(err)
+			_, errInner := io.Copy(w, p)
+			if errInner != nil {
+				w.CloseWithError(errInner)
 			}
 		}
-		err = w.Close()
-		if err != nil {
+		errInner := w.Close()
+		if errInner != nil {
 			logger.Fatal("failed to close upload cache image writer",
 				zap.String("objectid", string(objectID)),
 				zap.String("filename", filename))

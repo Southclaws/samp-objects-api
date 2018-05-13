@@ -22,7 +22,7 @@ type App struct {
 	router         *mux.Router
 	Storage        *storage.Database
 	Sessions       *sessions.CookieStore
-	Uploads        sync.Map
+	Uploads        *sync.Map
 	FinishRequests chan types.ObjectID
 }
 

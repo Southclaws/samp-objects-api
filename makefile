@@ -1,8 +1,13 @@
 VERSION := $(shell cat VERSION)
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 -include .env
-
 .PHONY: version
+
+
+# -
+# Local
+# -
+
 
 fast:
 	go build $(LDFLAGS) -o samp-objects-api
@@ -11,20 +16,6 @@ static:
 	CGO_ENABLED=0 GOOS=linux go build -a $(LDFLAGS) -o samp-objects-api .
 
 local: fast
-	BIND=localhost:8080 \
-	DOMAIN=localhost \
-	MONGO_USER=sampobjects \
-	MONGO_HOST=localhost \
-	MONGO_PORT=27017 \
-	MONGO_NAME=sampobjects \
-	STORE_HOST=localhost \
-	STORE_PORT=9000 \
-	STORE_ACCESS=default \
-	STORE_SECRET=12345678 \
-	STORE_SECURE=false \
-	STORE_BUCKET=samp-objects \
-	STORE_LOCATION=AMS3 \
-	DEBUG=1 \
 	./samp-objects-api
 
 version:
@@ -35,18 +26,16 @@ version:
 test:
 	go test -v -race
 
+
+# -
 # Docker
+# -
+
 
 build:
-	docker build --no-cache -t southclaws/samp-objects-api:$(VERSION) -f Dockerfile.dev .
-
-build-prod:
 	docker build --no-cache -t southclaws/samp-objects-api:$(VERSION) .
 
-build-test:
-	docker build --no-cache -t southclaws/samp-objects-test:$(VERSION) -f Dockerfile.testing .
-
-push: build-prod
+push: build
 	docker push southclaws/samp-objects-api:$(VERSION)
 	
 run:
@@ -54,19 +43,7 @@ run:
 	docker run \
 		--name samp-objects-test \
 		--network host \
-		-e BIND=localhost:8080 \
-		-e DOMAIN=localhost \
-		-e MONGO_USER=sampobjects \
-		-e MONGO_HOST=localhost \
-		-e MONGO_PORT=27017 \
-		-e MONGO_NAME=sampobjects \
-		-e STORE_HOST=localhost \
-		-e STORE_PORT=9000 \
-		-e STORE_ACCESS=default \
-		-e STORE_SECRET=12345678 \
-		-e STORE_SECURE=false \
-		-e STORE_BUCKET=samp-objects \
-		-e STORE_LOCATION=AMS3 \
+		--env-file .env \
 		southclaws/samp-objects-api:$(VERSION)
 
 run-prod:
@@ -77,22 +54,7 @@ run-prod:
 		--restart on-failure \
 		-d \
 		-p 7791:80 \
-		-e DEBUG=1 \
-		-e BIND=0.0.0.0:80 \
-		-e DOMAIN=$(DOMAIN) \
-		-e MONGO_USER=$(MONGO_USER) \
-		-e MONGO_HOST=$(MONGO_HOST) \
-		-e MONGO_PORT=$(MONGO_PORT) \
-		-e MONGO_NAME=$(MONGO_NAME) \
-		-e MONGO_PASS=$(MONGO_PASS) \
-		-e AUTH_SECRET=$(AUTH_SECRET) \
-		-e STORE_PORT=$(STORE_PORT) \
-		-e STORE_ACCESS=$(STORE_ACCESS) \
-		-e STORE_SECRET=$(STORE_SECRET) \
-		-e STORE_SECURE=$(STORE_SECURE) \
-		-e STORE_BUCKET=$(STORE_BUCKET) \
-		-e STORE_HOST=$(STORE_HOST) \
-		-e STORE_LOCATION=$(STORE_LOCATION) \
+		--env-file .env \
 		southclaws/samp-objects-api:$(VERSION)
 	docker network connect samp-objects samp-objects-api
 
@@ -102,7 +64,11 @@ enter:
 enter-mount:
 	docker run -v $(shell pwd)/testspace:/samp -it --entrypoint=bash southclaws/samp-objects-api:$(VERSION)
 
-# Test stuff
+
+# -
+# Testing
+# -
+
 
 test-container: build-test
 	docker run --network host southclaws/samp-objects-test:$(VERSION)

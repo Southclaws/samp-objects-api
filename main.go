@@ -4,6 +4,9 @@ import (
 	"os"
 	"strconv"
 
+	// loads environment variables from .env
+	_ "github.com/joho/godotenv/autoload"
+	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -13,21 +16,21 @@ var version = "master"
 // Config stores app global configuration
 type Config struct {
 	Version       string
-	Bind          string
-	Domain        string
-	MongoHost     string
-	MongoPort     string
-	MongoName     string
-	MongoUser     string
-	MongoPass     string
-	AuthSecret    string
-	StoreHost     string
-	StorePort     string
-	StoreAccess   string
-	StoreSecret   string
-	StoreSecure   bool
-	StoreBucket   string
-	StoreLocation string
+	Bind          string `split_words:"true" required:"true"`
+	Domain        string `split_words:"true" required:"true"`
+	MongoHost     string `split_words:"true" required:"true"`
+	MongoPort     string `split_words:"true" required:"true"`
+	MongoName     string `split_words:"true" required:"true"`
+	MongoUser     string `split_words:"true" required:"true"`
+	MongoPass     string `split_words:"true" required:"false"`
+	AuthSecret    string `split_words:"true" required:"true"`
+	StoreHost     string `split_words:"true" required:"true"`
+	StorePort     string `split_words:"true" required:"true"`
+	StoreAccess   string `split_words:"true" required:"true"`
+	StoreSecret   string `split_words:"true" required:"true"`
+	StoreSecure   bool   `split_words:"true" required:"true"`
+	StoreBucket   string `split_words:"true" required:"true"`
+	StoreLocation string `split_words:"true" required:"true"`
 }
 
 var logger *zap.Logger
@@ -65,23 +68,14 @@ func init() {
 
 func main() {
 	config := Config{
-		Version:       version,
-		Bind:          configStrFromEnv("BIND"),
-		Domain:        configStrFromEnv("DOMAIN"),
-		MongoHost:     configStrFromEnv("MONGO_HOST"),
-		MongoPort:     configStrFromEnv("MONGO_PORT"),
-		MongoName:     configStrFromEnv("MONGO_NAME"),
-		MongoUser:     configStrFromEnv("MONGO_USER"),
-		MongoPass:     os.Getenv("MONGO_PASS"),
-		AuthSecret:    configStrFromEnv("AUTH_SECRET"),
-		StoreHost:     configStrFromEnv("STORE_HOST"),
-		StorePort:     configStrFromEnv("STORE_PORT"),
-		StoreAccess:   configStrFromEnv("STORE_ACCESS"),
-		StoreSecret:   configStrFromEnv("STORE_SECRET"),
-		StoreSecure:   configStrFromEnv("STORE_SECURE") == "true",
-		StoreBucket:   configStrFromEnv("STORE_BUCKET"),
-		StoreLocation: configStrFromEnv("STORE_LOCATION"),
+		Version: version,
 	}
+	err := envconfig.Process("SAMPOBJECTS", &config)
+	if err != nil {
+		logger.Fatal("failed to load configuration",
+			zap.Error(err))
+	}
+
 	app := Initialise(config)
 	app.Start()
 }

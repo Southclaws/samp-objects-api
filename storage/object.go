@@ -86,7 +86,7 @@ func (db Database) GetObjectThumb(objectID types.ObjectID, writer io.Writer) (er
 	if err != nil {
 		return errors.Wrap(err, "failed to decode stored image")
 	}
-	err = jpeg.Encode(writer, resize.Thumbnail(200, 200, img, resize.Bilinear), &jpeg.Options{64})
+	err = jpeg.Encode(writer, resize.Thumbnail(200, 200, img, resize.Bilinear), &jpeg.Options{Quality: 64})
 
 	return
 }
